@@ -78,7 +78,7 @@ async function main(): Promise<void> {
               : name === 'get_network_logs'
                 ? (report?.network ?? [])
                 : [];
-      result = { content: [{ type: 'text', text: JSON.stringify(value) }] };
+      result = { content: [{ type: 'text', text: JSON.stringify(value ?? null) }] };
     } else result = { error: { code: -32601, message: 'Method not found' } };
     process.stdout.write(`${JSON.stringify({ jsonrpc: '2.0', id: request.id, result })}\n`);
   }

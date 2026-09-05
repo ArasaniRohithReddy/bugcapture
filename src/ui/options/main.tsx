@@ -117,7 +117,19 @@ function Options() {
         >
           Reset settings
         </button>{' '}
-        <button type="button" className="danger" onClick={() => void deleteAllData()}>
+        <button
+          type="button"
+          className="danger"
+          onClick={() => {
+            if (
+              confirm(
+                'Delete every stored report, screenshot and recording? This cannot be undone.',
+              )
+            ) {
+              void deleteAllData();
+            }
+          }}
+        >
           Delete all data
         </button>
       </section>
