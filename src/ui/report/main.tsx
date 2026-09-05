@@ -3,8 +3,8 @@ import { createRoot } from 'react-dom/client';
 import '../shared/styles.css';
 import './report.css';
 import { Field, Tabs, useSettings, useTheme } from '../shared/components';
-import { AiPanel } from './AiPanel';
 import { Annotator } from './Annotator';
+import { RewindCropper } from './RewindCropper';
 import { ConsolePanel, EnvironmentPanel, MediaPanel, NetworkPanel, ReplayPanel } from './panels';
 import {
   buildZipBundle,
@@ -15,11 +15,10 @@ import {
 } from '../../core/export';
 import { reportToMarkdown } from '../../core/markdown';
 import { redactReport } from '../../core/redact';
+import { buildLocalAiPrompt } from '../../ai/prompt';
 import { getBlob, getReport, putBlob, saveReport } from '../../core/storage';
-import type { AiOutput, BugReport, MediaItem, Severity } from '../../core/types';
+import type { BugReport, MediaItem, Severity } from '../../core/types';
 import { uid } from '../../core/util';
-import { createGithubIssue } from '../../integrations/github';
-import { uploadReport } from '../../integrations/upload';
 
 type TabId = 'console' | 'network' | 'replay' | 'media' | 'environment';
 
@@ -108,7 +107,7 @@ function ReportEditor({ id }: { id: string }) {
     );
   }
 
-  const markdown = reportToMarkdown(redacted, { includeMediaLinks: true });
+  const markdown = reportToMarkdown(redacted);
 
   return (
     <main className="report">
@@ -162,6 +161,19 @@ function ReportEditor({ id }: { id: string }) {
             }
           >
             Export .zip
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              void run('Copying AI prompt', async () => {
+                const ok = await copyToClipboard(buildLocalAiPrompt(report, settings.redaction));
+                return ok
+                  ? 'AI prompt copied. Nothing was sent automatically.'
+                  : '❌ Clipboard permission denied.';
+              })
+            }
+          >
+            Copy as AI prompt
           </button>
         </div>
       </header>
@@ -228,77 +240,15 @@ function ReportEditor({ id }: { id: string }) {
           </p>
         </section>
 
+        <RewindCropper report={report} onApply={patch} />
+
         <section className="card">
-          <h2>Share</h2>
-          <div className="row">
-            <button
-              type="button"
-              disabled={busy || !settings.backend.endpoint}
-              onClick={() =>
-                void run('Uploading', async () => {
-                  const result = await uploadReport(report, settings.backend, settings.redaction);
-                  patch({ remoteUrl: result.url });
-                  return `Uploaded: ${result.url}`;
-                })
-              }
-            >
-              Upload to backend
-            </button>
-            <button
-              type="button"
-              disabled={busy || !settings.integrations.github.token}
-              onClick={() =>
-                void run('Creating GitHub issue', async () => {
-                  const issue = await createGithubIssue(
-                    redacted,
-                    settings.integrations.github,
-                    markdown,
-                  );
-                  patch({ issueUrl: issue.url });
-                  return `Created issue #${issue.number}: ${issue.url}`;
-                })
-              }
-            >
-              Create GitHub issue
-            </button>
-            {report.remoteUrl ? (
-              <a href={report.remoteUrl} target="_blank" rel="noreferrer">
-                View shared report
-              </a>
-            ) : null}
-            {report.issueUrl ? (
-              <a href={report.issueUrl} target="_blank" rel="noreferrer">
-                View issue
-              </a>
-            ) : null}
-          </div>
-          <p className="hint">
-            Uploads and issues always use the redacted copy shown in these tabs. Configure endpoints
-            and tokens in{' '}
-            <button
-              type="button"
-              className="ghost"
-              onClick={() => chrome.runtime.openOptionsPage()}
-            >
-              Options
-            </button>
-            .
+          <h2>Local sharing</h2>
+          <p className="muted">
+            Reports remain in this browser. Export JSON, Markdown, or ZIP to share them.
           </p>
         </section>
       </div>
-
-      <AiPanel
-        report={redacted}
-        settings={settings}
-        notes={report.description}
-        onConsent={async () => {
-          const { getSettings, saveSettings } = await import('../../core/settings');
-          const current = await getSettings();
-          await saveSettings({ ...current, ai: { ...current.ai, consentGivenAt: Date.now() } });
-        }}
-        onApply={(update) => patch(update)}
-        onSaveOutput={(output: AiOutput) => patch({ ai: [...report.ai, output] })}
-      />
 
       <section className="card">
         <div className="spread">

@@ -24,6 +24,7 @@ const dist = resolve(root, 'dist');
 const scriptEntries = {
   background: 'src/background/index.ts',
   content: 'src/content/index.ts',
+  rewind: 'src/content/rewind.ts',
   injected: 'src/content/injected.ts',
   offscreen: 'src/offscreen/offscreen.ts',
 };

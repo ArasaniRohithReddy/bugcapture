@@ -3,10 +3,11 @@ import { createRoot } from 'react-dom/client';
 import '../shared/styles.css';
 import './popup.css';
 import { Toggle, useSettings, useTheme } from '../shared/components';
-import { sendMessage } from '../../core/messages';
+import { sendMessage, type RewindStatus } from '../../core/messages';
 import { deleteReport, getStorageUsage, listReports, type StorageUsage } from '../../core/storage';
 import type { BugReport, CaptureState } from '../../core/types';
 import { formatBytes, formatDuration } from '../../core/util';
+import { hostFromUrl } from '../../core/rewind';
 
 function useCaptureState(): [CaptureState | undefined, (state: CaptureState) => void] {
   const [state, setState] = useState<CaptureState>();
@@ -26,11 +27,36 @@ function useCaptureState(): [CaptureState | undefined, (state: CaptureState) => 
   return [state, setState];
 }
 
+/** Current page host plus the live state of its Rewind buffer. */
+function useRewind(): {
+  host: string;
+  status: RewindStatus | undefined;
+  refresh: () => Promise<void>;
+} {
+  const [host, setHost] = useState('');
+  const [status, setStatus] = useState<RewindStatus>();
+
+  const refresh = useCallback(async () => {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    setHost(hostFromUrl(tab?.url));
+    setStatus(await sendMessage<RewindStatus>({ type: 'rewind:status' }));
+  }, []);
+
+  useEffect(() => {
+    void refresh();
+    const timer = setInterval(() => void refresh(), 2000);
+    return () => clearInterval(timer);
+  }, [refresh]);
+
+  return { host, status, refresh };
+}
+
 function Popup() {
   const { settings, loaded, update } = useSettings();
   useTheme(settings.theme);
   const [state, setState] = useCaptureState();
   const [reports, setReports] = useState<BugReport[]>([]);
+  const rewind = useRewind();
   const [usage, setUsage] = useState<StorageUsage>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -177,6 +203,66 @@ function Popup() {
         />
         <button type="button" onClick={screenshot} disabled={busy || recording}>
           📸 Quick screenshot (Alt+Shift+S)
+        </button>
+      </div>
+
+      <div className="card">
+        <div className="spread">
+          <h3>Rewind</h3>
+          <span className="muted">
+            {rewind.status?.allowed
+              ? `${formatDuration(rewind.status.durationMs)} buffered`
+              : 'off here'}
+          </span>
+        </div>
+        {settings.capture.rewind ? null : (
+          <p className="muted">
+            Rewind is off. Turn it on in settings to keep a rolling buffer of the last{' '}
+            {settings.capture.rewindBufferSeconds} seconds.
+          </p>
+        )}
+        {settings.capture.rewind && rewind.host ? (
+          <Toggle
+            label={`Buffer ${rewind.host}`}
+            hint="Rewind only ever runs on sites you opt in here."
+            checked={Boolean(rewind.status?.allowed)}
+            onChange={(enabled) =>
+              run(async () => {
+                // Chrome only grants host permissions from a user gesture, so
+                // the request has to happen here rather than in the worker.
+                const origins = [`*://${rewind.host}/*`, `*://*.${rewind.host}/*`];
+                if (enabled && !(await chrome.permissions.request({ origins }))) {
+                  return { ok: false, error: `Access to ${rewind.host} was declined.` };
+                }
+                const result = await sendMessage<{ ok: boolean; error?: string }>({
+                  type: 'rewind:consent',
+                  domain: rewind.host,
+                  enabled,
+                });
+                if (!enabled) await chrome.permissions.remove({ origins }).catch(() => false);
+                await rewind.refresh();
+                return result;
+              })
+            }
+          />
+        ) : null}
+        {settings.capture.rewind && !rewind.host ? (
+          <p className="muted">Rewind only runs on http(s) pages.</p>
+        ) : null}
+        <button
+          type="button"
+          disabled={busy || !rewind.status?.allowed || (rewind.status?.events ?? 0) === 0}
+          onClick={() =>
+            run(async () => {
+              const result = await sendMessage<{ ok: boolean; error?: string }>({
+                type: 'rewind:capture',
+              });
+              if (result?.ok) window.close();
+              return result;
+            })
+          }
+        >
+          ⏪ Save last {formatDuration(rewind.status?.durationMs ?? 0)} (Alt+Shift+R)
         </button>
       </div>
 

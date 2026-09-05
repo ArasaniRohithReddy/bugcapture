@@ -3,11 +3,11 @@
  *
  * Everything that can leave the browser (uploads, AI prompts, exports) is run
  * through this module first. It is deliberately dependency-free and pure so it
- * can be unit tested and reused by the backend viewer if needed.
+ * can be unit tested and reused by local exports.
  */
 import type { BugReport, ConsoleLogEntry, NetworkEntry, RedactionSettings } from './types';
 
-export const REDACTED = '[REDACTED]';
+export const REDACTED = '[REDACTED BY BUGCAPTURE]';
 
 /** Header names that are always removed when header redaction is on. */
 export const SENSITIVE_HEADERS = [
@@ -34,7 +34,7 @@ const SECRET_RULES: Rule[] = [
     pattern: /\beyJ[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{4,}\b/g,
     replacement: REDACTED,
   },
-  // `Authorization: ****** style values appearing inside free text.
+  // Authorization-style values appearing inside free text.
   {
     pattern: /\b(bearer|basic|token)\s+[A-Za-z0-9._~+/=-]{8,}/gi,
     replacement: `$1 ${REDACTED}`,
@@ -194,11 +194,6 @@ export function redactReport(
   if (!settings.enabled) return report;
   return {
     ...report,
-    title: redactText(report.title, settings),
-    description: redactText(report.description, settings),
-    stepsToReproduce: redactText(report.stepsToReproduce, settings),
-    expectedBehavior: redactText(report.expectedBehavior, settings),
-    actualBehavior: redactText(report.actualBehavior, settings),
     url: redactText(report.url, settings),
     environment: { ...report.environment, url: redactText(report.environment.url, settings) },
     console: report.console.map((entry) => redactConsoleEntry(entry, settings)),

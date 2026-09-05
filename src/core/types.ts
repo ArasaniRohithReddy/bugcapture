@@ -62,6 +62,10 @@ export interface EnvironmentInfo {
   jsHeapSizeMB?: number;
   extensionVersion: string;
   capturedAt: number;
+  /** Optional runtime context supplied by the host application. */
+  appName?: string;
+  appVersion?: string;
+  environment?: string;
 }
 
 export type Severity = 'critical' | 'high' | 'medium' | 'low';
@@ -79,12 +83,13 @@ export interface MediaItem {
   durationMs?: number;
 }
 
-export interface AiOutput {
-  generatedAt: number;
-  provider: string;
-  model: string;
-  kind: 'report' | 'error-explanation' | 'network-summary';
-  content: string;
+export interface RewindClip {
+  /** Epoch ms of the first and last buffered event in the saved clip. */
+  startedAt: number;
+  endedAt: number;
+  /** Epoch ms of the first and last event before any trimming. */
+  originalStartedAt: number;
+  originalEndedAt: number;
 }
 
 export interface BugReport {
@@ -104,17 +109,12 @@ export interface BugReport {
   /** rrweb events, stored as plain JSON. */
   replayEvents: unknown[];
   media: MediaItem[];
-  ai: AiOutput[];
   tags: string[];
-  /** Set once the report has been uploaded to a backend. */
-  remoteUrl?: string;
+  /** Present when the report was produced from the Rewind buffer. */
+  rewind?: RewindClip;
   /** Set once a GitHub issue has been created. */
   issueUrl?: string;
 }
-
-export type AiProviderMode = 'proxy' | 'ollama' | 'direct';
-
-export type DirectVendor = 'openai' | 'anthropic';
 
 export interface RedactionSettings {
   enabled: boolean;
@@ -140,48 +140,20 @@ export interface CaptureSettings {
   blockSelectors: string[];
   /** CSS selectors whose text is masked in the rrweb recording. */
   maskSelectors: string[];
-}
-
-export interface AiSettings {
-  enabled: boolean;
-  consentGivenAt?: number;
-  mode: AiProviderMode;
-  model: string;
-  /** Used by the `ollama` mode. */
-  ollamaEndpoint: string;
-  /** Used by the `direct` mode only; stored in chrome.storage.local. */
-  directVendor: DirectVendor;
-  directApiKey: string;
-  streaming: boolean;
-  timeoutMs: number;
-}
-
-export interface BackendSettings {
-  endpoint: string;
-  token: string;
-}
-
-export interface GithubSettings {
-  token: string;
-  /** `owner/repo`. */
-  repository: string;
-  labels: string[];
-}
-
-export interface IntegrationSettings {
-  github: GithubSettings;
-  jira: { enabled: boolean; baseUrl: string; project: string; email: string; apiToken: string };
-  linear: { enabled: boolean; apiKey: string; teamId: string };
-  slack: { enabled: boolean; webhookUrl: string };
-  webhook: { enabled: boolean; url: string; secret: string };
+  rewind: boolean;
+  rewindBufferSeconds: number;
+  /** Domains explicitly opted into the rolling buffer. */
+  rewindSites: string[];
+  /** Domains that are never eligible for the rolling buffer. */
+  rewindBlockedSites: string[];
+  /** Domains allowed even when a broad block rule matches. */
+  rewindAlwaysAllowSites: string[];
 }
 
 export interface Settings {
-  backend: BackendSettings;
-  ai: AiSettings;
   capture: CaptureSettings;
   redaction: RedactionSettings;
-  integrations: IntegrationSettings;
+  exportFolder?: string;
   /** Reports older than this many days are deleted automatically. 0 disables. */
   retentionDays: number;
   theme: 'system' | 'light' | 'dark';

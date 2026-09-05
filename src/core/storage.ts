@@ -1,6 +1,7 @@
 /** IndexedDB persistence for reports and media blobs. */
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import type { BugReport, MediaItem } from './types';
+import { clearAllRewind } from './rewindStore';
 
 export const DB_NAME = 'bugcapture';
 export const DB_VERSION = 1;
@@ -163,5 +164,7 @@ export async function deleteAllData(): Promise<number> {
   const count = await db.count('reports');
   await db.clear('reports');
   await db.clear('blobs');
+  // The Rewind buffer lives outside IndexedDB and must go with the rest.
+  await clearAllRewind();
   return count;
 }

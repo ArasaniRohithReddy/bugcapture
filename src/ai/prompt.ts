@@ -1,9 +1,9 @@
 /**
  * AI prompt builder.
  *
- * The payload produced here is exactly what is shown to the user in the
- * consent preview and exactly what is sent to the provider — there is no
- * second, hidden serialization path.
+ * The prompt is formatted locally for the "Copy as AI prompt" action and
+ * nothing is ever sent anywhere: the user pastes it into whichever AI tool
+ * they already use. Evidence is redacted first; user-authored fields are not.
  */
 import type { BugReport, ConsoleLogEntry, NetworkEntry, RedactionSettings } from '../core/types';
 import { groupFailures, isFailure } from '../core/network';
@@ -224,4 +224,21 @@ export function buildNetworkSummaryPrompt(entries: readonly NetworkEntry[]): AiP
 /** Human-readable preview shown on the consent screen before anything is sent. */
 export function payloadPreview(payload: AiPayload): string {
   return JSON.stringify(payload, null, 2);
+}
+
+/** Build a copyable, local-only prompt. Reporter-authored fields are never redacted. */
+export function buildLocalAiPrompt(
+  report: BugReport,
+  redaction: RedactionSettings = DEFAULT_REDACTION,
+): string {
+  const payload = buildAiPayload(report, '', redaction);
+  const authored = [
+    `Title: ${report.title || '(untitled)'}`,
+    `Description: ${report.description || '(none)'}`,
+    `Steps to reproduce: ${report.stepsToReproduce || '(none)'}`,
+    `Expected behavior: ${report.expectedBehavior || '(none)'}`,
+    `Actual behavior: ${report.actualBehavior || '(none)'}`,
+  ].join('\n');
+  const prompt = buildReportPrompt(payload);
+  return `${prompt.system}\n\n${authored}\n\n${prompt.user}`;
 }

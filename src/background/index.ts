@@ -1,7 +1,7 @@
 /**
  * MV3 service worker: orchestrates capture, storage and report creation.
  */
-import { getSettings } from '../core/settings';
+import { getSettings, onSettingsChanged, updateSettings } from '../core/settings';
 import { emptyEnvironment } from '../core/env';
 import { redactReport } from '../core/redact';
 import {
@@ -10,7 +10,24 @@ import {
   type CapturePayload,
   type Message,
   type RecordingResult,
+  type RewindStatus,
 } from '../core/messages';
+import {
+  REWIND_DENIAL_MESSAGES,
+  REWIND_MIN_CLIP_MS,
+  addDomain,
+  evaluateRewind,
+  normalizeDomain,
+  removeDomain,
+  type RewindEvent,
+} from '../core/rewind';
+import {
+  appendRewind,
+  clearAllRewind,
+  clearRewind,
+  clearRewindForDomain,
+  readRewind,
+} from '../core/rewindStore';
 import {
   assignBlobs,
   getReport,
@@ -19,7 +36,13 @@ import {
   putBlob,
   saveReport,
 } from '../core/storage';
-import type { BugReport, CaptureState, MediaItem, RedactionSettings } from '../core/types';
+import type {
+  BugReport,
+  CaptureSettings,
+  CaptureState,
+  MediaItem,
+  RedactionSettings,
+} from '../core/types';
 import { dataUrlToBlob, uid } from '../core/util';
 
 const STATE_KEY = 'bugcapture:capture-state';
@@ -51,7 +74,7 @@ async function updateBadge(state: CaptureState): Promise<void> {
     await chrome.action.setBadgeText({
       text: state.recording ? (state.paused ? '❚❚' : 'REC') : '',
     });
-    await chrome.action.setBadgeBackgroundColor({ text: '#e5484d' } as never);
+    await chrome.action.setBadgeBackgroundColor({ color: '#e5484d' });
   } catch {
     // Badge updates are best effort.
   }
@@ -147,9 +170,10 @@ async function stopVideo(): Promise<MediaItem | undefined> {
 
 async function captureScreenshot(windowId?: number): Promise<MediaItem | undefined> {
   try {
-    const dataUrl = await chrome.tabs.captureVisibleTab(windowId as number, {
-      format: 'png',
-    });
+    const dataUrl =
+      windowId === undefined
+        ? await chrome.tabs.captureVisibleTab({ format: 'png' })
+        : await chrome.tabs.captureVisibleTab(windowId, { format: 'png' });
     const blob = dataUrlToBlob(dataUrl);
     const media: MediaItem = {
       id: uid('shot'),
@@ -196,7 +220,6 @@ function buildReport(
     network: payload?.network ?? [],
     replayEvents: payload?.replayEvents ?? [],
     media,
-    ai: [],
     tags: [],
   };
   // Secrets must never reach storage: redact before the report is persisted.
@@ -323,7 +346,166 @@ async function setPaused(paused: boolean): Promise<CaptureState> {
   return next;
 }
 
-chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) => {
+/* --------------------------------------------------------------------------
+ * Rewind
+ *
+ * The rolling buffer only runs where the user has opted in, so the recorder is
+ * registered as a dynamic content script for consented origins and removed as
+ * soon as consent is withdrawn. Nothing is uploaded: turning the buffer into a
+ * report is always an explicit user action.
+ * ------------------------------------------------------------------------ */
+
+const REWIND_SCRIPT_ID = 'bugcapture-rewind';
+
+/** Origin match patterns for every site currently opted into Rewind. */
+function consentedOrigins(capture: CaptureSettings): string[] {
+  if (!capture.rewind) return [];
+  const domains = new Set<string>();
+  for (const site of capture.rewindSites) {
+    const domain = normalizeDomain(site);
+    const blocked = capture.rewindBlockedSites.some((rule) => normalizeDomain(rule) === domain);
+    if (domain && !blocked) domains.add(domain);
+  }
+  for (const site of capture.rewindAlwaysAllowSites) {
+    const domain = normalizeDomain(site);
+    if (domain) domains.add(domain);
+  }
+  return [...domains].flatMap((domain) => [`*://${domain}/*`, `*://*.${domain}/*`]);
+}
+
+/** Keep the registered recorder in step with the consent lists. */
+async function syncRewindScripts(): Promise<void> {
+  const settings = await getSettings();
+  const wanted = consentedOrigins(settings.capture);
+  // Only register where the user has actually granted the host permission.
+  const granted: string[] = [];
+  for (const pattern of wanted) {
+    if (await chrome.permissions.contains({ origins: [pattern] }).catch(() => false)) {
+      granted.push(pattern);
+    }
+  }
+  try {
+    const existing = await chrome.scripting.getRegisteredContentScripts({
+      ids: [REWIND_SCRIPT_ID],
+    });
+    if (granted.length === 0) {
+      if (existing.length)
+        await chrome.scripting.unregisterContentScripts({ ids: [REWIND_SCRIPT_ID] });
+      await clearAllRewind();
+      return;
+    }
+    const script: chrome.scripting.RegisteredContentScript = {
+      id: REWIND_SCRIPT_ID,
+      js: ['assets/rewind.js'],
+      matches: granted,
+      runAt: 'document_start',
+      allFrames: false,
+      persistAcrossSessions: true,
+    };
+    if (existing.length) await chrome.scripting.updateContentScripts([script]);
+    else await chrome.scripting.registerContentScripts([script]);
+  } catch (error) {
+    console.warn('[BugCapture] Could not sync the Rewind recorder:', error);
+  }
+}
+
+/** Store a flushed batch, re-checking consent against the sender's own URL. */
+async function ingestRewind(
+  tab: chrome.tabs.Tab | undefined,
+  events: readonly RewindEvent<unknown>[],
+): Promise<boolean> {
+  if (!tab?.id) return false;
+  const settings = await getSettings();
+  const decision = evaluateRewind(settings.capture, tab.url);
+  if (!decision.allowed) {
+    await clearRewind(tab.id);
+    return false;
+  }
+  await appendRewind(
+    tab.id,
+    decision.host,
+    events,
+    Math.max(REWIND_MIN_CLIP_MS, settings.capture.rewindBufferSeconds * 1000),
+  );
+  return true;
+}
+
+async function rewindStatus(tabId?: number): Promise<RewindStatus> {
+  const settings = await getSettings();
+  const tab = await getActiveTab(tabId);
+  const decision = evaluateRewind(settings.capture, tab?.url);
+  const stored = tab?.id === undefined ? undefined : await readRewind(tab.id);
+  const timestamps = stored?.events.map((event) => event.timestamp) ?? [];
+  return {
+    allowed: decision.allowed,
+    host: decision.host,
+    reason: decision.reason ? REWIND_DENIAL_MESSAGES[decision.reason] : undefined,
+    events: timestamps.length,
+    durationMs: timestamps.length > 1 ? Math.max(...timestamps) - Math.min(...timestamps) : 0,
+  };
+}
+
+/** Turn the buffered clip into a report. Always user initiated. */
+async function captureRewind(tabId?: number): Promise<string> {
+  const settings = await getSettings();
+  const tab = await getActiveTab(tabId);
+  const decision = evaluateRewind(settings.capture, tab?.url);
+  if (!decision.allowed || tab?.id === undefined) {
+    throw new Error(
+      decision.reason ? REWIND_DENIAL_MESSAGES[decision.reason] : 'Rewind is unavailable here.',
+    );
+  }
+  const stored = await readRewind(tab.id);
+  if (!stored || stored.events.length === 0) {
+    throw new Error('The Rewind buffer is still empty. Give it a few seconds on the page.');
+  }
+  const timestamps = stored.events.map((event) => event.timestamp);
+  const startedAt = Math.min(...timestamps);
+  const endedAt = Math.max(...timestamps);
+
+  let payload: CapturePayload | undefined;
+  if (await injectContentScripts(tab.id)) {
+    payload = await sendTabMessage<CapturePayload>(tab.id, { type: 'content:collect' });
+  }
+  const report = buildReport(
+    payload,
+    [],
+    tab,
+    chrome.runtime.getManifest().version,
+    settings.redaction,
+  );
+  report.title = tab.title ? `Rewind of \u201c${tab.title}\u201d` : 'Rewind capture';
+  report.replayEvents = stored.events.map((event) => event.value);
+  report.rewind = { startedAt, endedAt, originalStartedAt: startedAt, originalEndedAt: endedAt };
+  await saveReport(report);
+  await openReport(report.id);
+  void runRetentionCleanup();
+  return report.id;
+}
+
+/**
+ * Record a per-site opt-in. The host permission itself is requested by the
+ * calling extension page, because Chrome only grants it from a user gesture.
+ */
+async function setRewindConsent(domain: string, enabled: boolean): Promise<boolean> {
+  const normalized = normalizeDomain(domain);
+  if (!normalized) throw new Error('Enter a domain such as example.com.');
+  const origins = [`*://${normalized}/*`, `*://*.${normalized}/*`];
+  if (enabled) {
+    const granted = await chrome.permissions.contains({ origins }).catch(() => false);
+    if (!granted) throw new Error(`BugCapture needs access to ${normalized} to buffer it.`);
+  }
+  const settings = await getSettings();
+  const rewindSites = enabled
+    ? addDomain(settings.capture.rewindSites, normalized)
+    : removeDomain(settings.capture.rewindSites, normalized);
+  await updateSettings({ capture: { ...settings.capture, rewindSites } });
+  if (!enabled) await clearRewindForDomain(normalized);
+  await syncRewindScripts();
+  return enabled;
+}
+
+chrome.runtime.onMessage.addListener((message: Message, sender, sendResponse) => {
   switch (message.type) {
     case 'capture:start':
       startCapture(message.tabId)
@@ -349,6 +531,30 @@ chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) =
         .then((reportId) => sendResponse({ ok: true, reportId }))
         .catch((error: Error) => sendResponse({ ok: false, error: error.message }));
       return true;
+    case 'rewind:events':
+      ingestRewind(sender.tab, message.events)
+        .then((stored) => sendResponse({ ok: stored }))
+        .catch(() => sendResponse({ ok: false }));
+      return true;
+    case 'rewind:discard':
+      void (async () => {
+        if (sender.tab?.id !== undefined) await clearRewind(sender.tab.id);
+        sendResponse({ ok: true });
+      })();
+      return true;
+    case 'rewind:status':
+      void rewindStatus(message.tabId).then((status) => sendResponse(status));
+      return true;
+    case 'rewind:capture':
+      captureRewind(message.tabId)
+        .then((reportId) => sendResponse({ ok: true, reportId }))
+        .catch((error: Error) => sendResponse({ ok: false, error: error.message }));
+      return true;
+    case 'rewind:consent':
+      setRewindConsent(message.domain, message.enabled)
+        .then((enabled) => sendResponse({ ok: true, enabled }))
+        .catch((error: Error) => sendResponse({ ok: false, error: error.message }));
+      return true;
     case 'report:open':
       void getReport(message.reportId).then((report) => {
         if (report) void openReport(report.id);
@@ -369,6 +575,8 @@ chrome.commands?.onCommand.addListener((command) => {
         else await startCapture();
       } else if (command === 'take-screenshot') {
         await quickScreenshot();
+      } else if (command === 'capture-rewind') {
+        await captureRewind();
       }
     } catch (error) {
       console.warn('[BugCapture]', (error as Error).message);
@@ -378,10 +586,14 @@ chrome.commands?.onCommand.addListener((command) => {
 
 chrome.tabs.onRemoved.addListener((tabId) => {
   void (async () => {
+    // The buffer belongs to the tab and never outlives it.
+    await clearRewind(tabId);
     const state = await getState();
     if (state.recording && state.tabId === tabId) await stopCapture();
   })();
 });
+
+onSettingsChanged(() => void syncRewindScripts());
 
 /** Retention cleanup. Runs on startup and after every capture instead of
  * requiring the extra `alarms` permission. */
@@ -398,9 +610,15 @@ async function runRetentionCleanup(): Promise<void> {
 chrome.runtime.onInstalled.addListener(() => {
   void setState({ ...IDLE_STATE });
   void runRetentionCleanup();
+  void syncRewindScripts();
 });
 
 chrome.runtime.onStartup?.addListener(() => {
   void setState({ ...IDLE_STATE });
   void runRetentionCleanup();
+  void clearAllRewind();
+  void syncRewindScripts();
 });
+
+// A revoked permission must stop the recorder immediately.
+chrome.permissions.onRemoved?.addListener(() => void syncRewindScripts());

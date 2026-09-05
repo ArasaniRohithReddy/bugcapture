@@ -350,3 +350,25 @@ table.data td {
   margin: 0 auto;
   padding: 24px 20px 60px;
 }
+
+.domain-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.domain-list li {
+  font-size: 13px;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.rewind-cropper input[type='range'] {
+  width: 100%;
+}
