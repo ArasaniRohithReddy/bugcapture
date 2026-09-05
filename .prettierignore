@@ -1,10 +1,7 @@
 dist
+mcp/dist
 node_modules
-server/dist
-server/node_modules
-server/data
 coverage
 package-lock.json
-server/package-lock.json
 test-results
 playwright-report

@@ -6,19 +6,6 @@ import { DEFAULT_REDACTION } from './redact';
 export const SETTINGS_KEY = 'bugcapture:settings';
 
 export const DEFAULT_SETTINGS: Settings = {
-  backend: { endpoint: '', token: '' },
-  ai: {
-    enabled: false,
-    mode: 'proxy',
-    model: 'gpt-4o-mini',
-    ollamaEndpoint: 'http://localhost:11434',
-    directVendor: 'openai',
-    directApiKey: '',
-    streaming: true,
-    timeoutMs: 60_000,
-    // Present so `mergeSettings` keeps a stored consent timestamp.
-    consentGivenAt: undefined,
-  },
   capture: {
     video: true,
     microphone: false,
@@ -28,17 +15,16 @@ export const DEFAULT_SETTINGS: Settings = {
     screenshotOnStop: true,
     maxBodyBytes: DEFAULT_MAX_BODY_BYTES,
     maskAllInputs: true,
-    blockSelectors: ['.bugcapture-block', '[data-bugcapture-block]'],
-    maskSelectors: ['.bugcapture-mask', '[data-bugcapture-mask]'],
+    blockSelectors: ['[data-bugcapture="ignore"]'],
+    maskSelectors: [],
+    rewind: false,
+    rewindBufferSeconds: 120,
+    rewindSites: [],
+    rewindBlockedSites: [],
+    rewindAlwaysAllowSites: [],
   },
   redaction: { ...DEFAULT_REDACTION },
-  integrations: {
-    github: { token: '', repository: '', labels: ['bug'] },
-    jira: { enabled: false, baseUrl: '', project: '', email: '', apiToken: '' },
-    linear: { enabled: false, apiKey: '', teamId: '' },
-    slack: { enabled: false, webhookUrl: '' },
-    webhook: { enabled: false, url: '', secret: '' },
-  },
+  exportFolder: '',
   retentionDays: 30,
   theme: 'system',
 };

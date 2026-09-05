@@ -56,10 +56,13 @@ function startReplay(settings: CaptureSettings): void {
         },
         maskAllInputs: settings.maskAllInputs,
         maskInputOptions: { password: true },
-        blockSelector: settings.blockSelectors.join(',') || undefined,
+        blockSelector:
+          [...settings.blockSelectors, '[data-bugcapture="ignore"]'].join(',') || undefined,
         maskTextSelector: settings.maskSelectors.join(',') || undefined,
         blockClass: 'bugcapture-block',
         maskTextClass: 'bugcapture-mask',
+        // A page author can opt out of replay capture for sensitive islands.
+        ignoreClass: 'bugcapture-ignore',
         recordCanvas: false,
         collectFonts: false,
       }) ?? undefined;
