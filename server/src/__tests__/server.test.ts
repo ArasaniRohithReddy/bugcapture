@@ -52,9 +52,7 @@ describe('Auth', () => {
   });
 
   it('rejects POST /api/ai/generate without token', async () => {
-    const res = await request(app)
-      .post('/api/ai/generate')
-      .send({ system: 'x', user: 'y' });
+    const res = await request(app).post('/api/ai/generate').send({ system: 'x', user: 'y' });
     expect(res.status).toBe(401);
   });
 });
@@ -70,8 +68,23 @@ describe('Report upload and retrieval', () => {
       description: 'Something broke',
       severity: 'high',
       url: 'https://example.com',
-      environment: { browser: 'Chrome', browserVersion: '120', os: 'Linux', userAgent: 'test', viewport: { width: 1920, height: 1080 } },
-      console: [{ id: 'c1', timestamp: Date.now(), level: 'error', args: ['err'], text: 'Error!', source: 'console' }],
+      environment: {
+        browser: 'Chrome',
+        browserVersion: '120',
+        os: 'Linux',
+        userAgent: 'test',
+        viewport: { width: 1920, height: 1080 },
+      },
+      console: [
+        {
+          id: 'c1',
+          timestamp: Date.now(),
+          level: 'error',
+          args: ['err'],
+          text: 'Error!',
+          source: 'console',
+        },
+      ],
       network: [],
       media: [],
       ai: [],
@@ -123,9 +136,7 @@ describe('Report upload and retrieval', () => {
   });
 
   it('retrieves media file', async () => {
-    const res = await request(app).get(
-      `/api/reports/${reportId}/media/screenshot.png`,
-    );
+    const res = await request(app).get(`/api/reports/${reportId}/media/screenshot.png`);
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toContain('image/png');
   });
@@ -156,9 +167,7 @@ describe('XSS prevention', () => {
 
     expect(uploadRes.status).toBe(201);
 
-    const viewRes = await request(app).get(
-      `/api/reports/${uploadRes.body.id}`,
-    );
+    const viewRes = await request(app).get(`/api/reports/${uploadRes.body.id}`);
     expect(viewRes.status).toBe(200);
     expect(viewRes.text).not.toContain('<script>alert("xss")</script>');
     expect(viewRes.text).toContain('&lt;script&gt;');

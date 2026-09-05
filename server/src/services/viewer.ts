@@ -2,9 +2,7 @@ import { escapeHtml } from '../utils/helpers.js';
 
 function escapeJsonForScript(data: unknown): string {
   // Safely embed JSON in a script tag by escaping </script and <!-- sequences
-  return JSON.stringify(data)
-    .replace(/<\//g, '<\\/')
-    .replace(/<!--/g, '<\\!--');
+  return JSON.stringify(data).replace(/<\//g, '<\\/').replace(/<!--/g, '<\\!--');
 }
 
 export function renderViewer(

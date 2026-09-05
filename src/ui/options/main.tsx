@@ -5,7 +5,7 @@ import './options.css';
 import { Field, Tabs, Toggle, useSettings, useTheme } from '../shared/components';
 import { requiredOriginsForAi } from '../../ai/client';
 import { DEFAULT_SETTINGS } from '../../core/settings';
-import { pruneOldReports, pruneOrphanBlobs } from '../../core/storage';
+import { deleteAllData, pruneOldReports, pruneOrphanBlobs } from '../../core/storage';
 import type { Settings } from '../../core/types';
 
 type TabId = 'backend' | 'ai' | 'capture' | 'privacy' | 'integrations' | 'data';
@@ -547,6 +547,22 @@ function DataTab({
           }}
         >
           Reset settings
+        </button>
+        <button
+          type="button"
+          className="danger"
+          onClick={async () => {
+            if (
+              !confirm(
+                'Delete every stored report, screenshot and recording? This cannot be undone.',
+              )
+            )
+              return;
+            const removed = await deleteAllData();
+            setStatus(`Deleted ${removed} report(s) and all stored media.`);
+          }}
+        >
+          Delete all data
         </button>
         <span className="muted">{status}</span>
       </div>

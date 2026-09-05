@@ -156,3 +156,12 @@ export async function pruneOrphanBlobs(): Promise<number> {
   }
   return removed;
 }
+
+/** Delete every stored report and blob. Settings are handled separately. */
+export async function deleteAllData(): Promise<number> {
+  const db = await getDb();
+  const count = await db.count('reports');
+  await db.clear('reports');
+  await db.clear('blobs');
+  return count;
+}

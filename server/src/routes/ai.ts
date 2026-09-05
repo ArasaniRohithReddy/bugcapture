@@ -19,8 +19,7 @@ export function aiRouter(config: Config): Router {
         const provider = resolveProvider(config);
         if (!provider) {
           res.status(503).json({
-            error:
-              'No AI provider configured. Set OPENAI_API_KEY or ANTHROPIC_API_KEY.',
+            error: 'No AI provider configured. Set OPENAI_API_KEY or ANTHROPIC_API_KEY.',
           });
           return;
         }
@@ -55,8 +54,7 @@ export function aiRouter(config: Config): Router {
 
 function resolveProvider(config: Config): 'openai' | 'anthropic' | null {
   if (config.aiProvider === 'openai' && config.openaiApiKey) return 'openai';
-  if (config.aiProvider === 'anthropic' && config.anthropicApiKey)
-    return 'anthropic';
+  if (config.aiProvider === 'anthropic' && config.anthropicApiKey) return 'anthropic';
   if (config.aiProvider === 'auto') {
     if (config.openaiApiKey) return 'openai';
     if (config.anthropicApiKey) return 'anthropic';
@@ -220,13 +218,8 @@ async function handleAnthropic(
                   type?: string;
                   delta?: { text?: string };
                 };
-                if (
-                  json.type === 'content_block_delta' &&
-                  json.delta?.text
-                ) {
-                  res.write(
-                    `data: ${JSON.stringify({ delta: json.delta.text })}\n\n`,
-                  );
+                if (json.type === 'content_block_delta' && json.delta?.text) {
+                  res.write(`data: ${JSON.stringify({ delta: json.delta.text })}\n\n`);
                 }
                 if (json.type === 'message_stop') {
                   res.write('data: [DONE]\n\n');

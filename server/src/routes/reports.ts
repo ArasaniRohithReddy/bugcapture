@@ -6,11 +6,7 @@ import { createReadStream, existsSync } from 'node:fs';
 import type { Config } from '../config.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { BugReportSchema } from '../schemas.js';
-import {
-  sanitizeFilename,
-  isAllowedMediaType,
-  generateId,
-} from '../utils/helpers.js';
+import { sanitizeFilename, isAllowedMediaType, generateId } from '../utils/helpers.js';
 import { renderViewer } from '../services/viewer.js';
 import { createRateLimitMiddleware } from '../middleware/rate-limit.js';
 
@@ -111,9 +107,7 @@ export function reportsRouter(config: Config): Router {
           await writeFile(join(dir, safeName), media.buffer);
         }
 
-        const baseUrl = config.publicUrl
-          ? config.publicUrl.replace(/\/$/, '')
-          : '';
+        const baseUrl = config.publicUrl ? config.publicUrl.replace(/\/$/, '') : '';
         const url = `${baseUrl}/api/reports/${id}`;
 
         res.status(201).json({ id, url });
@@ -135,9 +129,10 @@ export function reportsRouter(config: Config): Router {
         return;
       }
 
-      const report = JSON.parse(
-        await readFile(join(dir, 'report.json'), 'utf-8'),
-      ) as Record<string, unknown>;
+      const report = JSON.parse(await readFile(join(dir, 'report.json'), 'utf-8')) as Record<
+        string,
+        unknown
+      >;
 
       let replay: unknown[] = [];
       const replayPath = join(dir, 'replay.json');
@@ -151,9 +146,7 @@ export function reportsRouter(config: Config): Router {
 
       // List media files
       const allFiles = await readdir(dir);
-      const mediaFiles = allFiles.filter(
-        (f) => f !== 'report.json' && f !== 'replay.json',
-      );
+      const mediaFiles = allFiles.filter((f) => f !== 'report.json' && f !== 'replay.json');
 
       const html = renderViewer(id, report, replay, mediaFiles);
 
