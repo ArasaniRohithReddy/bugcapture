@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>BugCapture e2e fixture</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 3rem auto;
+        max-width: 40rem;
+        line-height: 1.5;
+      }
+      button {
+        padding: 0.6rem 1rem;
+        margin-right: 0.5rem;
+        cursor: pointer;
+      }
+      #log {
+        margin-top: 1rem;
+        font-family: ui-monospace, monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>BugCapture e2e fixture</h1>
+    <p>This page deliberately produces console errors and failing network requests.</p>
+
+    <button id="throw">Throw error</button>
+    <button id="request">Make requests</button>
+    <label>Password (masked in replay): <input id="secret" type="password" value="hunter2" /></label>
+
+    <p id="log">idle</p>
+
+    <script>
+      const log = document.getElementById('log');
+
+      document.getElementById('throw').addEventListener('click', () => {
+        console.info('button clicked');
+        console.warn('this is a warning');
+        try {
+          null.total;
+        } catch (error) {
+          console.error('Checkout failed', error);
+        }
+        log.textContent = 'threw';
+      });
+
+      document.getElementById('request').addEventListener('click', async () => {
+        await fetch('/api/ok').catch(() => {});
+        await fetch('/api/fail', {
+          method: 'POST',
+          headers: { authorization: 'token abc123', 'content-type': 'application/json' },
+          body: JSON.stringify({ cart: 1 }),
+        }).catch(() => {});
+        await new Promise((resolve) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open('GET', '/api/fail');
+          xhr.onloadend = resolve;
+          xhr.send();
+        });
+        log.textContent = 'requested';
+      });
+    </script>
+  </body>
+</html>

@@ -9,6 +9,7 @@ import {
   payloadPreview,
   type AiPrompt,
 } from '../../ai/prompt';
+import { parseGeneratedReport } from '../../ai/parse';
 import { findSimilarReports } from '../../ai/similarity';
 import { listReports } from '../../core/storage';
 import type { AiOutput, BugReport, Settings } from '../../core/types';
@@ -21,32 +22,6 @@ const ACTION_LABELS: Record<Action, string> = {
   error: 'Explain top error',
   network: 'Summarize network failures',
 };
-
-/** Pull the structured sections out of the model's Markdown answer. */
-export function parseGeneratedReport(markdown: string): Partial<BugReport> {
-  const section = (name: string): string => {
-    const pattern = new RegExp(`##\\s*${name}\\s*\\n([\\s\\S]*?)(?=\\n##\\s|$)`, 'i');
-    return markdown.match(pattern)?.[1]?.trim() ?? '';
-  };
-  const severityText = section('Suggested severity').toLowerCase();
-  const severity = (['critical', 'high', 'medium', 'low'] as const).find((value) =>
-    severityText.includes(value),
-  );
-
-  const patch: Partial<BugReport> = {};
-  const title = section('Title').replace(/^#+\s*/, '');
-  if (title) patch.title = title;
-  const summary = section('Summary');
-  if (summary) patch.description = summary;
-  const steps = section('Steps to reproduce');
-  if (steps) patch.stepsToReproduce = steps;
-  const expected = section('Expected behavior');
-  if (expected) patch.expectedBehavior = expected;
-  const actual = section('Actual behavior');
-  if (actual) patch.actualBehavior = actual;
-  if (severity) patch.severity = severity;
-  return patch;
-}
 
 export function AiPanel({
   report,
