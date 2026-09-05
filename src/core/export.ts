@@ -117,10 +117,11 @@ export function downloadBlob(blob: Blob, filename: string): void {
 /** Export JSON to Chrome's configured downloads folder (a watched subfolder can be supplied). */
 export async function exportToWatchedFolder(report: BugReport, watchedFolder = ''): Promise<void> {
   const url = URL.createObjectURL(new Blob([reportToJson(report)], { type: 'application/json' }));
+  const folder = watchedFolder.replace(/^\/+|\/+$/g, '');
   try {
     await chrome.downloads.download({
       url,
-      filename: `${watchedFolder.replace(/^\/+|\/+$/g, '') ? `${watchedFolder.replace(/^\/+|\/+$/g, '')}/` : ''}${reportFileName(report, 'json')}`,
+      filename: `${folder ? `${folder}/` : ''}${reportFileName(report, 'json')}`,
       saveAs: false,
       conflictAction: 'uniquify',
     });

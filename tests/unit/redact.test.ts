@@ -192,7 +192,6 @@ describe('entry redaction', () => {
     expect(result.description).toContain(JWT);
     expect(result.console[0]!.text).not.toContain(JWT);
     expect(result.network[0]!.requestHeaders.authorization).toBe(REDACTED);
-    expect(result.description).toContain(JWT);
-    expect(result.console[0]!.text).toContain(REDACTED);
+    expect(JSON.stringify({ console: result.console, network: result.network })).not.toContain(JWT);
   });
 });

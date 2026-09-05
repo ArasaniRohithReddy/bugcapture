@@ -68,6 +68,7 @@ button.primary:hover { background: #2f6fd8; }
 export function createWidget(handlers: WidgetHandlers): Widget {
   const host = document.createElement('div');
   host.id = 'bugcapture-widget-host';
+  host.setAttribute('data-bugcapture', 'ignore');
   const shadow = host.attachShadow({ mode: 'closed' });
 
   const style = document.createElement('style');

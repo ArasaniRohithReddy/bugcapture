@@ -6,7 +6,7 @@ import {
   type Page,
   type Worker,
 } from '@playwright/test';
-import { cp, mkdtemp } from 'node:fs/promises';
+import { cp, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -20,6 +20,10 @@ const FIXTURE = `${FIXTURE_ORIGIN}/index.html`;
 async function buildTestExtension(): Promise<string> {
   const dir = await mkdtemp(join(tmpdir(), 'bugcapture-e2e-'));
   await cp(distPath, dir, { recursive: true });
+  const manifestPath = join(dir, 'manifest.json');
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8')) as Record<string, unknown>;
+  manifest.host_permissions = ['<all_urls>'];
+  await writeFile(manifestPath, JSON.stringify(manifest, null, 2));
   return dir;
 }
 
