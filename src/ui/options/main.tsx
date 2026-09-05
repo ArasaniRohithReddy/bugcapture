@@ -86,7 +86,9 @@ function Options() {
           <textarea
             value={settings.redaction.customPatterns.join('\n')}
             onChange={(e) =>
-              setRedaction({ customPatterns: e.target.value.split('\n').filter(Boolean) })
+              setRedaction({
+                customPatterns: e.target.value.split('\n').filter((line) => line.trim()),
+              })
             }
           />
         </Field>
