@@ -34,7 +34,7 @@ const SECRET_RULES: Rule[] = [
     pattern: /\beyJ[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{4,}\b/g,
     replacement: REDACTED,
   },
-  // `Authorization: ****** style values appearing inside free text.
+  // Authorization-style values appearing inside free text.
   {
     pattern: /\b(bearer|basic|token)\s+[A-Za-z0-9._~+/=-]{8,}/gi,
     replacement: `$1 ${REDACTED}`,

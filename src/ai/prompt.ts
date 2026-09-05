@@ -239,5 +239,6 @@ export function buildLocalAiPrompt(
     `Expected behavior: ${report.expectedBehavior || '(none)'}`,
     `Actual behavior: ${report.actualBehavior || '(none)'}`,
   ].join('\n');
-  return `${buildReportPrompt({ ...payload, title: report.title, userNotes: report.description }).system}\n\n${authored}\n\n${buildReportPrompt(payload).user}`;
+  const prompt = buildReportPrompt(payload);
+  return `${prompt.system}\n\n${authored}\n\n${prompt.user}`;
 }

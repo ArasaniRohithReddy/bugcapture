@@ -14,13 +14,20 @@ import {
 } from '../core/messages';
 import {
   REWIND_DENIAL_MESSAGES,
+  REWIND_MIN_CLIP_MS,
   addDomain,
   evaluateRewind,
   normalizeDomain,
   removeDomain,
   type RewindEvent,
 } from '../core/rewind';
-import { appendRewind, clearAllRewind, clearRewind, readRewind } from '../core/rewindStore';
+import {
+  appendRewind,
+  clearAllRewind,
+  clearRewind,
+  clearRewindForDomain,
+  readRewind,
+} from '../core/rewindStore';
 import {
   assignBlobs,
   getReport,
@@ -417,7 +424,7 @@ async function ingestRewind(
     tab.id,
     decision.host,
     events,
-    Math.max(10, settings.capture.rewindBufferSeconds) * 1000,
+    Math.max(REWIND_MIN_CLIP_MS, settings.capture.rewindBufferSeconds * 1000),
   );
   return true;
 }
@@ -492,7 +499,7 @@ async function setRewindConsent(domain: string, enabled: boolean): Promise<boole
     ? addDomain(settings.capture.rewindSites, normalized)
     : removeDomain(settings.capture.rewindSites, normalized);
   await updateSettings({ capture: { ...settings.capture, rewindSites } });
-  if (!enabled) await clearAllRewind();
+  if (!enabled) await clearRewindForDomain(normalized);
   await syncRewindScripts();
   return enabled;
 }

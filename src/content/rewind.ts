@@ -25,6 +25,9 @@ let stopRecording: (() => void) | undefined;
 let flushTimer: number | undefined;
 let pending: RewindEvent<unknown>[] = [];
 
+// Registered once: a page unload must not lose the last few seconds.
+window.addEventListener('pagehide', () => void flush());
+
 function markPlayingVideo(event: Event): void {
   const target = event.target;
   if (!(target instanceof HTMLElement) || target.tagName !== 'VIDEO') return;
@@ -86,7 +89,6 @@ function start(bufferSeconds: number): void {
     return;
   }
   flushTimer = setInterval(() => void flush(), FLUSH_MS) as unknown as number;
-  window.addEventListener('pagehide', () => void flush());
 }
 
 function stop(): void {

@@ -4,6 +4,7 @@ import {
   appendRewind,
   clearAllRewind,
   clearRewind,
+  clearRewindForDomain,
   readRewind,
   rewindKey,
 } from '../../src/core/rewindStore';
@@ -72,6 +73,16 @@ describe('rewind buffer storage', () => {
     );
     expect(stored.host).toBe('other.test');
     expect(stored.events.map((event) => event.value)).toEqual(['b']);
+  });
+
+  it('clears only the tabs of a de-consented domain', async () => {
+    await appendRewind(5, 'example.com', [{ timestamp: 1, value: 'a' }], 120_000, 1);
+    await appendRewind(6, 'app.example.com', [{ timestamp: 1, value: 'a' }], 120_000, 1);
+    await appendRewind(8, 'other.test', [{ timestamp: 1, value: 'a' }], 120_000, 1);
+    await clearRewindForDomain('example.com');
+    expect(await readRewind(5)).toBeUndefined();
+    expect(await readRewind(6)).toBeUndefined();
+    expect(await readRewind(8)).toBeDefined();
   });
 
   it('clears a single tab and every tab', async () => {

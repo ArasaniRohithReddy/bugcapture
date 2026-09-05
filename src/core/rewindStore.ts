@@ -6,7 +6,7 @@
  * It is removed when the tab goes away, when consent is withdrawn, or when the
  * user deletes their data.
  */
-import { RewindBuffer, REWIND_BUFFER_MS, type RewindEvent } from './rewind';
+import { RewindBuffer, REWIND_BUFFER_MS, domainMatches, type RewindEvent } from './rewind';
 
 export const REWIND_KEY_PREFIX = 'bugcapture:rewind:';
 
@@ -34,6 +34,18 @@ export async function clearRewind(tabId: number): Promise<void> {
 export async function clearAllRewind(): Promise<void> {
   const all = await chrome.storage.local.get(null);
   const keys = Object.keys(all).filter((key) => key.startsWith(REWIND_KEY_PREFIX));
+  if (keys.length) await chrome.storage.local.remove(keys);
+}
+
+/** Drop the buffered clips of one domain, leaving other tabs untouched. */
+export async function clearRewindForDomain(domain: string): Promise<void> {
+  const all = await chrome.storage.local.get(null);
+  const keys = Object.entries(all)
+    .filter(([key, value]) => {
+      if (!key.startsWith(REWIND_KEY_PREFIX)) return false;
+      return domainMatches((value as StoredRewind | undefined)?.host ?? '', domain);
+    })
+    .map(([key]) => key);
   if (keys.length) await chrome.storage.local.remove(keys);
 }
 
