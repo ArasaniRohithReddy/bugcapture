@@ -1,0 +1,7 @@
+dist
+mcp/dist
+node_modules
+coverage
+package-lock.json
+test-results
+playwright-report
