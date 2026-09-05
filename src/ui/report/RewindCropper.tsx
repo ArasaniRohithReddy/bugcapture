@@ -5,7 +5,7 @@
  * selection can never be shorter than ten seconds, which keeps enough context
  * around the bug for the replay to make sense.
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   REWIND_MIN_CLIP_MS,
   clampTrim,
@@ -33,7 +33,9 @@ export function RewindCropper({
     return { start: Math.min(...stamps), end: Math.max(...stamps) };
   }, [stamps]);
 
-  const [selection, setSelection] = useState<RewindTrim | undefined>(bounds);
+  const [selection, setSelection] = useState<RewindTrim>();
+  // A trimmed or reloaded clip has new bounds, so the selection starts over.
+  useEffect(() => setSelection(undefined), [bounds?.start, bounds?.end]);
   const current = selection ?? bounds;
   if (!clip || !bounds || !current) return null;
 

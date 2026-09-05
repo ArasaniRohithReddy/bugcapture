@@ -74,7 +74,7 @@ async function updateBadge(state: CaptureState): Promise<void> {
     await chrome.action.setBadgeText({
       text: state.recording ? (state.paused ? '❚❚' : 'REC') : '',
     });
-    await chrome.action.setBadgeBackgroundColor({ text: '#e5484d' } as never);
+    await chrome.action.setBadgeBackgroundColor({ color: '#e5484d' });
   } catch {
     // Badge updates are best effort.
   }

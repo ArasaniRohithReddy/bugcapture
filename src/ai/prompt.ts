@@ -1,9 +1,9 @@
 /**
  * AI prompt builder.
  *
- * The payload produced here is exactly what is shown to the user in the
- * consent preview and exactly what is sent to the provider — there is no
- * second, hidden serialization path.
+ * The prompt is formatted locally for the "Copy as AI prompt" action and
+ * nothing is ever sent anywhere: the user pastes it into whichever AI tool
+ * they already use. Evidence is redacted first; user-authored fields are not.
  */
 import type { BugReport, ConsoleLogEntry, NetworkEntry, RedactionSettings } from '../core/types';
 import { groupFailures, isFailure } from '../core/network';
