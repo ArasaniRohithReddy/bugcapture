@@ -60,6 +60,8 @@ function ReportEditor({ id }: { id: string }) {
   const [status, setStatus] = useState('');
   const [busy, setBusy] = useState(false);
 
+  const mediaKey = report?.media.map((item) => item.id).join(',') ?? '';
+
   useEffect(() => {
     if (!report) return;
     let cancelled = false;
@@ -75,7 +77,8 @@ function ReportEditor({ id }: { id: string }) {
       cancelled = true;
       Object.values(urls).forEach((url) => URL.revokeObjectURL(url));
     };
-  }, [report?.id, report?.media.length]);
+    // Keyed by media ids so swapping an item (same count) still refreshes.
+  }, [report?.id, mediaKey]);
 
   const redacted = useMemo(
     () => (report ? redactReport(report, settings.redaction) : undefined),

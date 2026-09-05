@@ -16,6 +16,8 @@ export const DEFAULT_SETTINGS: Settings = {
     directApiKey: '',
     streaming: true,
     timeoutMs: 60_000,
+    // Present so `mergeSettings` keeps a stored consent timestamp.
+    consentGivenAt: undefined,
   },
   capture: {
     video: true,

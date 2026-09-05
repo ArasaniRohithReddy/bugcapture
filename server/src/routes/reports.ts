@@ -102,8 +102,16 @@ export function reportsRouter(config: Config): Router {
         }
 
         // Write media files (already validated above)
+        // Two originals can sanitize to the same name; de-duplicate so neither
+        // attachment is silently overwritten.
+        const usedNames = new Set<string>();
         for (const media of mediaFiles) {
-          const safeName = sanitizeFilename(media.originalname);
+          const base = sanitizeFilename(media.originalname);
+          let safeName = base;
+          for (let index = 1; usedNames.has(safeName); index += 1) {
+            safeName = `${index}-${base}`;
+          }
+          usedNames.add(safeName);
           await writeFile(join(dir, safeName), media.buffer);
         }
 

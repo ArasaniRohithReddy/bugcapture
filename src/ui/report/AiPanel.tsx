@@ -71,6 +71,7 @@ export function AiPanel({
     setRunning(true);
     setOutput('');
     setError('');
+    let streamed = '';
     try {
       if (!settings.ai.consentGivenAt) await onConsent();
       const result = await runAi({
@@ -78,10 +79,13 @@ export function AiPanel({
         ai: { ...settings.ai, consentGivenAt: settings.ai.consentGivenAt ?? Date.now() },
         backend: settings.backend,
         onToken: settings.ai.streaming
-          ? (chunk) => setOutput((current) => current + chunk)
+          ? (chunk) => {
+              streamed += chunk;
+              setOutput((current) => current + chunk);
+            }
           : undefined,
       });
-      const text = result.text || output;
+      const text = result.text || streamed;
       setOutput(text);
       if (text) {
         onSaveOutput({

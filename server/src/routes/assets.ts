@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { createRateLimitMiddleware } from '../middleware/rate-limit.js';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { PLAYER_SCRIPT_PATH, PLAYER_STYLE_PATH } from '../services/viewer.js';
@@ -21,6 +22,8 @@ function playerDistDir(): string {
 export function assetsRouter(): Router {
   const router = Router();
   const dist = playerDistDir();
+  // Static files, but they still hit the disk, so cap the request rate.
+  const limiter = createRateLimitMiddleware(60_000, 120);
 
   const send = (file: string, contentType: string) => {
     return (_req: unknown, res: import('express').Response): void => {
@@ -32,9 +35,10 @@ export function assetsRouter(): Router {
 
   router.get(
     PLAYER_SCRIPT_PATH,
+    limiter,
     send('rrweb-player.umd.min.cjs', 'text/javascript; charset=utf-8'),
   );
-  router.get(PLAYER_STYLE_PATH, send('style.min.css', 'text/css; charset=utf-8'));
+  router.get(PLAYER_STYLE_PATH, limiter, send('style.min.css', 'text/css; charset=utf-8'));
 
   return router;
 }

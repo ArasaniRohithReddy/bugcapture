@@ -56,10 +56,3 @@ export function slugify(text: string, fallback = 'bug-report'): string {
     .slice(0, 60);
   return slug || fallback;
 }
-
-/** `AbortSignal.timeout` is not available in every context we run in. */
-export function timeoutSignal(ms: number): AbortSignal {
-  const controller = new AbortController();
-  setTimeout(() => controller.abort(new Error(`Timed out after ${ms}ms`)), ms);
-  return controller.signal;
-}
