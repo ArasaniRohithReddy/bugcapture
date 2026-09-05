@@ -17,18 +17,11 @@ const distPath = fileURLToPath(new URL('../../dist', import.meta.url));
 const FIXTURE_ORIGIN = 'http://127.0.0.1:5599';
 const FIXTURE = `${FIXTURE_ORIGIN}/index.html`;
 
-/**
- * In real use the extension relies on `activeTab`, which Chrome grants when the
- * user clicks the toolbar action — something a headless browser cannot do. The
- * test therefore loads a copy of the production build with the fixture origin
- * added as a host permission; nothing else about the build is changed.
- */
 async function buildTestExtension(): Promise<string> {
   const dir = await mkdtemp(join(tmpdir(), 'bugcapture-e2e-'));
   await cp(distPath, dir, { recursive: true });
   const manifestPath = join(dir, 'manifest.json');
   const manifest = JSON.parse(await readFile(manifestPath, 'utf8')) as Record<string, unknown>;
-  // captureVisibleTab specifically requires `<all_urls>` or a granted `activeTab`.
   manifest.host_permissions = ['<all_urls>'];
   await writeFile(manifestPath, JSON.stringify(manifest, null, 2));
   return dir;

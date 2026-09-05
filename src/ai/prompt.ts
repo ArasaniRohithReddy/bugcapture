@@ -225,3 +225,19 @@ export function buildNetworkSummaryPrompt(entries: readonly NetworkEntry[]): AiP
 export function payloadPreview(payload: AiPayload): string {
   return JSON.stringify(payload, null, 2);
 }
+
+/** Build a copyable, local-only prompt. Reporter-authored fields are never redacted. */
+export function buildLocalAiPrompt(
+  report: BugReport,
+  redaction: RedactionSettings = DEFAULT_REDACTION,
+): string {
+  const payload = buildAiPayload(report, '', redaction);
+  const authored = [
+    `Title: ${report.title || '(untitled)'}`,
+    `Description: ${report.description || '(none)'}`,
+    `Steps to reproduce: ${report.stepsToReproduce || '(none)'}`,
+    `Expected behavior: ${report.expectedBehavior || '(none)'}`,
+    `Actual behavior: ${report.actualBehavior || '(none)'}`,
+  ].join('\n');
+  return `${buildReportPrompt({ ...payload, title: report.title, userNotes: report.description }).system}\n\n${authored}\n\n${buildReportPrompt(payload).user}`;
+}

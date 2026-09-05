@@ -7,9 +7,8 @@ export default tseslint.config(
   {
     ignores: [
       'dist/**',
+      'mcp/dist/**',
       'node_modules/**',
-      'server/dist/**',
-      'server/node_modules/**',
       'coverage/**',
       'test-results/**',
       'playwright-report/**',
@@ -36,7 +35,6 @@ export default tseslint.config(
   {
     files: [
       'scripts/**/*.mjs',
-      'server/**/*.ts',
       'tests/e2e/**/*.{ts,mjs}',
       'playwright.config.ts',
       'vitest.config.ts',

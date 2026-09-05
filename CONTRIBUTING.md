@@ -13,12 +13,6 @@ npm run dev
 
 Load `dist/` via `chrome://extensions` → **Developer mode** → **Load unpacked**. After a rebuild, press the reload button on the extension card; content scripts additionally need the page to be reloaded.
 
-For the backend:
-
-```bash
-cd server && npm install && npm run dev
-```
-
 ## Before opening a pull request
 
 ```bash
@@ -35,22 +29,21 @@ and, if you touched capture or storage:
 npm run test:e2e
 ```
 
-CI runs exactly these commands for both the extension and `server/`, so a green local run should mean a green pipeline.
+CI runs these commands for the extension. The MCP package can be checked with `cd mcp && npm install && npm run build`.
 
 ## Project layout
 
-| Path                | Contents                                                                                                |
-| ------------------- | ------------------------------------------------------------------------------------------------------- |
-| `src/core/`         | Framework-free logic: types, redaction, serialization, network normalization, storage, settings, export |
-| `src/content/`      | `MAIN`-world hooks (`injected.ts`), isolated content script, Shadow-DOM widget                          |
-| `src/background/`   | MV3 service worker: capture orchestration, message router, retention cleanup                            |
-| `src/offscreen/`    | `MediaRecorder` host for tab video                                                                      |
-| `src/ai/`           | Payload builder, prompts, provider client, similarity, Markdown parser                                  |
-| `src/integrations/` | GitHub Issues, upload, stubs                                                                            |
-| `src/ui/`           | React pages: popup, options, report editor, replay viewer                                               |
-| `server/`           | Self-hostable Express + TypeScript backend                                                              |
-| `tests/unit/`       | Vitest unit tests                                                                                       |
-| `tests/e2e/`        | Playwright test + fixture page and server                                                               |
+| Path              | Contents                                                                                                |
+| ----------------- | ------------------------------------------------------------------------------------------------------- |
+| `src/core/`       | Framework-free logic: types, redaction, serialization, network normalization, storage, settings, export |
+| `src/content/`    | `MAIN`-world hooks (`injected.ts`), isolated content script, Shadow-DOM widget                          |
+| `src/background/` | MV3 service worker: capture orchestration, message router, retention cleanup                            |
+| `src/offscreen/`  | `MediaRecorder` host for tab video                                                                      |
+| `src/ai/`         | Local prompt formatter used only by the copy-to-clipboard action                                        |
+| `mcp/`            | Optional stdio MCP server for exported reports                                                          |
+| `src/ui/`         | React pages: popup, options, report editor, replay viewer                                               |
+| `tests/unit/`     | Vitest unit tests                                                                                       |
+| `tests/e2e/`      | Playwright test + fixture page and server                                                               |
 
 ## Conventions
 
@@ -71,7 +64,7 @@ Permissions are deliberately minimal. If a change needs a new one:
 
 ## Adding an integration
 
-Implement the interface in `src/integrations/stubs.ts`, store credentials in `chrome.storage.local` only, request the host permission at runtime, and add the settings UI to the Options page.
+Keep integrations explicit and user initiated. Store credentials in `chrome.storage.local` only and document every network destination.
 
 ## Commit and PR style
 

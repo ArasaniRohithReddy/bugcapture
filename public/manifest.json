@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "BugCapture",
   "version": "0.1.0",
-  "description": "Capture bugs with video, console logs, network logs, session replay and optional AI-written reports. Open source and self-hostable.",
+  "description": "Capture browser bugs locally with video, console, network logs and session replay.",
   "minimum_chrome_version": "116",
   "icons": {
     "16": "icons/icon16.png",
@@ -34,7 +34,6 @@
     "downloads",
     "offscreen"
   ],
-  "optional_host_permissions": ["http://*/*", "https://*/*"],
   "commands": {
     "toggle-capture": {
       "suggested_key": { "default": "Alt+Shift+B" },
@@ -43,6 +42,10 @@
     "take-screenshot": {
       "suggested_key": { "default": "Alt+Shift+S" },
       "description": "Capture an annotated screenshot"
+    },
+    "capture-rewind": {
+      "suggested_key": { "default": "Alt+Shift+R" },
+      "description": "Save the recent BugCapture rewind buffer"
     }
   }
 }
