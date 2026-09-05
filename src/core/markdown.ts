@@ -23,9 +23,6 @@ export function formatNetworkLine(entry: NetworkEntry): string {
 export interface MarkdownOptions {
   /** Maximum console/network lines rendered. */
   maxEntries?: number;
-  includeMediaLinks?: boolean;
-  /** Public URL of the uploaded report, if any. */
-  remoteUrl?: string;
 }
 
 export function reportToMarkdown(report: BugReport, options: MarkdownOptions = {}): string {
@@ -39,9 +36,6 @@ export function reportToMarkdown(report: BugReport, options: MarkdownOptions = {
   lines.push(`**Severity:** ${report.severity}`);
   lines.push(`**URL:** ${report.url || env.url}`);
   lines.push(`**Captured:** ${new Date(report.createdAt).toISOString()}`);
-  if (options.remoteUrl ?? report.remoteUrl) {
-    lines.push(`**Shareable report:** ${options.remoteUrl ?? report.remoteUrl}`);
-  }
   lines.push('');
 
   if (report.description) lines.push('## Description', '', report.description, '');
@@ -99,21 +93,13 @@ export function reportToMarkdown(report: BugReport, options: MarkdownOptions = {
   if (report.media.length) {
     lines.push('## Attachments', '');
     for (const media of report.media) {
-      const link =
-        options.includeMediaLinks && (options.remoteUrl ?? report.remoteUrl)
-          ? `${options.remoteUrl ?? report.remoteUrl}/media/${media.id}`
-          : media.name;
-      lines.push(`- ${media.kind}: ${link} (${formatBytes(media.size)})`);
+      lines.push(`- ${media.kind}: ${media.name} (${formatBytes(media.size)})`);
     }
     lines.push('');
   }
 
   if (report.replayEvents.length) {
     lines.push(`_Session replay: ${report.replayEvents.length} rrweb events captured._`, '');
-  }
-
-  for (const output of report.ai) {
-    lines.push(`## AI ${output.kind} (${output.provider}/${output.model})`, '', output.content, '');
   }
 
   lines.push(

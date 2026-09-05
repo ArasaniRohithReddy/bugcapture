@@ -183,7 +183,6 @@ describe('entry redaction', () => {
       network: [networkEntry],
       replayEvents: [],
       media: [],
-      ai: [],
       tags: [],
     };
 

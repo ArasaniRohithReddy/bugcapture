@@ -1,4 +1,5 @@
 /** Typed message protocol used across popup, content, background and offscreen. */
+import type { RewindEvent } from './rewind';
 import type {
   CaptureSettings,
   CaptureState,
@@ -32,11 +33,28 @@ export type Message =
   | { type: 'offscreen:pause' }
   | { type: 'offscreen:resume' }
   | { type: 'report:open'; reportId: string }
-  | { type: 'settings:request-host-permission'; origins: string[] };
+  | { type: 'rewind:events'; events: RewindEvent<unknown>[] }
+  | { type: 'rewind:discard' }
+  | { type: 'rewind:status'; tabId?: number }
+  | { type: 'rewind:capture'; tabId?: number }
+  | { type: 'rewind:consent'; domain: string; enabled: boolean };
 
 export interface ScreenshotResult {
   media: MediaItem;
   dataUrl: string;
+}
+
+export interface RewindStatus {
+  /** Whether the rolling buffer may run on this page. */
+  allowed: boolean;
+  /** Host of the active tab, or `''` for a page Rewind cannot run on. */
+  host: string;
+  /** Why buffering is off, when it is. */
+  reason?: string;
+  /** Number of buffered events. */
+  events: number;
+  /** Wall-clock length of the buffered clip, in ms. */
+  durationMs: number;
 }
 
 export interface RecordingResult {

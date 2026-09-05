@@ -20,7 +20,6 @@ it('keeps user-authored fields while redacting evidence', () => {
     network: [],
     replayEvents: [],
     media: [],
-    ai: [],
     tags: [],
   } satisfies BugReport;
   const prompt = buildLocalAiPrompt(report);

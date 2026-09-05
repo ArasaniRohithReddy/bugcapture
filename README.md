@@ -11,7 +11,9 @@ backend services.
 - **Copy as AI prompt**: formats a prompt for any AI tool without sending it. Evidence is redacted;
   title, description, steps, expected behavior, and actual behavior remain exactly user-authored.
 - Add `data-bugcapture="ignore"` to omit sensitive replay regions.
-- Two-minute in-memory rewind buffer; see [docs/REWIND.md](docs/REWIND.md).
+- **Rewind**: an opt-in two-minute rolling buffer that captures a bug after it happened, with a
+  master toggle, per-site consent, blocked/always-allow lists and a timeline cropper;
+  see [docs/REWIND.md](docs/REWIND.md).
 - Optional stdio MCP server for exported JSON reports; see [docs/MCP.md](docs/MCP.md).
 - GraphQL operation metadata is parsed from captured request bodies.
 

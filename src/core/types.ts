@@ -83,12 +83,13 @@ export interface MediaItem {
   durationMs?: number;
 }
 
-export interface AiOutput {
-  generatedAt: number;
-  provider: string;
-  model: string;
-  kind: 'report' | 'error-explanation' | 'network-summary';
-  content: string;
+export interface RewindClip {
+  /** Epoch ms of the first and last buffered event in the saved clip. */
+  startedAt: number;
+  endedAt: number;
+  /** Epoch ms of the first and last event before any trimming. */
+  originalStartedAt: number;
+  originalEndedAt: number;
 }
 
 export interface BugReport {
@@ -108,10 +109,9 @@ export interface BugReport {
   /** rrweb events, stored as plain JSON. */
   replayEvents: unknown[];
   media: MediaItem[];
-  ai: AiOutput[];
   tags: string[];
-  /** Set once the report has been uploaded to a backend. */
-  remoteUrl?: string;
+  /** Present when the report was produced from the Rewind buffer. */
+  rewind?: RewindClip;
   /** Set once a GitHub issue has been created. */
   issueUrl?: string;
 }

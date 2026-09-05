@@ -24,6 +24,7 @@
     "service_worker": "assets/background.js"
   },
   "options_page": "options.html",
+  "optional_host_permissions": ["*://*/*"],
   "permissions": [
     "activeTab",
     "tabs",

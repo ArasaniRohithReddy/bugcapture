@@ -92,6 +92,71 @@ export function Field({
   );
 }
 
+/** Editable list of domains with manual entry, used by the Rewind lists. */
+export function DomainList({
+  label,
+  hint,
+  domains,
+  onAdd,
+  onRemove,
+}: {
+  label: string;
+  hint?: string;
+  domains: readonly string[];
+  onAdd: (domain: string) => void;
+  onRemove: (domain: string) => void;
+}) {
+  const [draft, setDraft] = useState('');
+  const inputId = `domains-${label.replace(/\W+/g, '-').toLowerCase()}`;
+  const submit = () => {
+    if (!draft.trim()) return;
+    onAdd(draft);
+    setDraft('');
+  };
+  return (
+    <div className="field">
+      <label htmlFor={inputId}>
+        <span>{label}</span>
+      </label>
+      <div className="row">
+        <input
+          id={inputId}
+          type="text"
+          value={draft}
+          placeholder="example.com"
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              submit();
+            }
+          }}
+        />
+        <button type="button" onClick={submit}>
+          Add
+        </button>
+      </div>
+      <ul className="domain-list">
+        {domains.map((domain) => (
+          <li key={domain} className="spread">
+            <span>{domain}</span>
+            <button
+              type="button"
+              className="ghost danger"
+              aria-label={`Remove ${domain}`}
+              onClick={() => onRemove(domain)}
+            >
+              ✕
+            </button>
+          </li>
+        ))}
+        {domains.length === 0 ? <li className="muted">No domains yet.</li> : null}
+      </ul>
+      {hint ? <p className="hint">{hint}</p> : null}
+    </div>
+  );
+}
+
 export function Dialog({
   title,
   children,

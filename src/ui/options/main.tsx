@@ -1,7 +1,8 @@
 import { createRoot } from 'react-dom/client';
 import '../shared/styles.css';
 import './options.css';
-import { Field, Toggle, useSettings, useTheme } from '../shared/components';
+import { DomainList, Field, Toggle, useSettings, useTheme } from '../shared/components';
+import { REWIND_MIN_CLIP_MS, addDomain, removeDomain } from '../../core/rewind';
 import { DEFAULT_SETTINGS } from '../../core/settings';
 import { deleteAllData, pruneOldReports, pruneOrphanBlobs } from '../../core/storage';
 import type { Settings } from '../../core/types';
@@ -44,11 +45,6 @@ function Options() {
           checked={settings.capture.replay}
           onChange={(replay) => setCapture({ replay })}
         />
-        <Toggle
-          label="Keep a 2-minute rewind buffer"
-          checked={settings.capture.rewind}
-          onChange={(rewind) => setCapture({ rewind })}
-        />
         <Field label="Theme">
           <select
             value={settings.theme}
@@ -59,6 +55,82 @@ function Options() {
             <option value="dark">Dark</option>
           </select>
         </Field>
+      </section>
+      <section className="card">
+        <h2>Rewind</h2>
+        <p className="muted">
+          Rewind keeps a rolling buffer of the last couple of minutes so a bug that already happened
+          can still be captured. It is off by default and only ever runs on sites listed below; the
+          buffer stays on this device, is continuously overwritten and is only saved when you ask
+          for it.
+        </p>
+        <Toggle
+          label="Enable Rewind"
+          hint="Master switch. With this off, nothing is buffered anywhere."
+          checked={settings.capture.rewind}
+          onChange={(rewind) => setCapture({ rewind })}
+        />
+        <Field label="Buffer length (seconds)">
+          <input
+            type="number"
+            min={REWIND_MIN_CLIP_MS / 1000}
+            max={600}
+            value={settings.capture.rewindBufferSeconds}
+            onChange={(e) =>
+              setCapture({
+                rewindBufferSeconds: Math.min(
+                  600,
+                  Math.max(REWIND_MIN_CLIP_MS / 1000, Number(e.target.value) || 120),
+                ),
+              })
+            }
+          />
+        </Field>
+        <DomainList
+          label="Sites Rewind may buffer"
+          hint="Opt a site in from the popup so BugCapture can ask for access to it."
+          domains={settings.capture.rewindSites}
+          onAdd={(domain) =>
+            setCapture({ rewindSites: addDomain(settings.capture.rewindSites, domain) })
+          }
+          onRemove={(domain) =>
+            setCapture({ rewindSites: removeDomain(settings.capture.rewindSites, domain) })
+          }
+        />
+        <DomainList
+          label="Blocked sites"
+          hint="Never buffered, even if the site is opted in. Subdomains are covered too."
+          domains={settings.capture.rewindBlockedSites}
+          onAdd={(domain) =>
+            setCapture({
+              rewindBlockedSites: addDomain(settings.capture.rewindBlockedSites, domain),
+            })
+          }
+          onRemove={(domain) =>
+            setCapture({
+              rewindBlockedSites: removeDomain(settings.capture.rewindBlockedSites, domain),
+            })
+          }
+        />
+        <DomainList
+          label="Always allow"
+          hint="Exceptions that win over a broader blocked entry."
+          domains={settings.capture.rewindAlwaysAllowSites}
+          onAdd={(domain) =>
+            setCapture({
+              rewindAlwaysAllowSites: addDomain(settings.capture.rewindAlwaysAllowSites, domain),
+            })
+          }
+          onRemove={(domain) =>
+            setCapture({
+              rewindAlwaysAllowSites: removeDomain(settings.capture.rewindAlwaysAllowSites, domain),
+            })
+          }
+        />
+        <p className="muted">
+          Iframes and canvas elements are never recorded and playing videos are blacked out, so the
+          buffer stays small and the page stays responsive. See docs/REWIND.md.
+        </p>
       </section>
       <section className="card">
         <h2>Privacy</h2>

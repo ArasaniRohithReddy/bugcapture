@@ -4,6 +4,7 @@ import '../shared/styles.css';
 import './report.css';
 import { Field, Tabs, useSettings, useTheme } from '../shared/components';
 import { Annotator } from './Annotator';
+import { RewindCropper } from './RewindCropper';
 import { ConsolePanel, EnvironmentPanel, MediaPanel, NetworkPanel, ReplayPanel } from './panels';
 import {
   buildZipBundle,
@@ -106,7 +107,7 @@ function ReportEditor({ id }: { id: string }) {
     );
   }
 
-  const markdown = reportToMarkdown(redacted, { includeMediaLinks: true });
+  const markdown = reportToMarkdown(redacted);
 
   return (
     <main className="report">
@@ -238,6 +239,8 @@ function ReportEditor({ id }: { id: string }) {
             </a>
           </p>
         </section>
+
+        <RewindCropper report={report} onApply={patch} />
 
         <section className="card">
           <h2>Local sharing</h2>
