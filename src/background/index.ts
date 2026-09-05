@@ -3,6 +3,7 @@
  */
 import { getSettings } from '../core/settings';
 import { emptyEnvironment } from '../core/env';
+import { redactReport } from '../core/redact';
 import {
   sendMessage,
   sendTabMessage,
@@ -18,7 +19,7 @@ import {
   putBlob,
   saveReport,
 } from '../core/storage';
-import type { BugReport, CaptureState, MediaItem } from '../core/types';
+import type { BugReport, CaptureState, MediaItem, RedactionSettings } from '../core/types';
 import { dataUrlToBlob, uid } from '../core/util';
 
 const STATE_KEY = 'bugcapture:capture-state';
@@ -171,6 +172,7 @@ function buildReport(
   media: MediaItem[],
   tab: chrome.tabs.Tab | undefined,
   version: string,
+  redaction: RedactionSettings,
 ): BugReport {
   const now = Date.now();
   const environment = payload?.environment ?? {
@@ -178,7 +180,7 @@ function buildReport(
     url: tab?.url ?? '',
     title: tab?.title ?? '',
   };
-  return {
+  const report: BugReport = {
     id: uid('report'),
     createdAt: now,
     updatedAt: now,
@@ -197,6 +199,8 @@ function buildReport(
     ai: [],
     tags: [],
   };
+  // Secrets must never reach storage: redact before the report is persisted.
+  return redactReport(report, redaction);
 }
 
 async function openReport(reportId: string): Promise<void> {
@@ -256,7 +260,13 @@ async function stopCapture(): Promise<string | undefined> {
 
   await setState({ ...IDLE_STATE });
 
-  const report = buildReport(payload, media, tab, chrome.runtime.getManifest().version);
+  const report = buildReport(
+    payload,
+    media,
+    tab,
+    chrome.runtime.getManifest().version,
+    settings.redaction,
+  );
   await saveReport(report);
   await assignBlobs(
     media.map((item) => item.id),
@@ -275,11 +285,18 @@ async function quickScreenshot(): Promise<string | undefined> {
   const media = await captureScreenshot(tab.windowId);
   if (!media) return undefined;
 
+  const settings = await getSettings();
   let payload: CapturePayload | undefined;
   if (await injectContentScripts(tab.id)) {
     payload = await sendTabMessage<CapturePayload>(tab.id, { type: 'content:collect' });
   }
-  const report = buildReport(payload, [media], tab, chrome.runtime.getManifest().version);
+  const report = buildReport(
+    payload,
+    [media],
+    tab,
+    chrome.runtime.getManifest().version,
+    settings.redaction,
+  );
   report.title = tab.title ? `Screenshot of “${tab.title}”` : 'Screenshot';
   await saveReport(report);
   await assignBlobs([media.id], report.id);

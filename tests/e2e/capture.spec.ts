@@ -1,54 +1,103 @@
-import { test, expect, chromium, type BrowserContext, type Worker } from '@playwright/test';
+import {
+  test,
+  expect,
+  chromium,
+  type BrowserContext,
+  type Page,
+  type Worker,
+} from '@playwright/test';
+import { cp, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { SETTINGS_KEY } from '../../src/core/settings';
+
 const distPath = fileURLToPath(new URL('../../dist', import.meta.url));
-const FIXTURE = 'http://127.0.0.1:5599/index.html';
+const FIXTURE_ORIGIN = 'http://127.0.0.1:5599';
+const FIXTURE = `${FIXTURE_ORIGIN}/index.html`;
+
+/**
+ * In real use the extension relies on `activeTab`, which Chrome grants when the
+ * user clicks the toolbar action — something a headless browser cannot do. The
+ * test therefore loads a copy of the production build with the fixture origin
+ * added as a host permission; nothing else about the build is changed.
+ */
+async function buildTestExtension(): Promise<string> {
+  const dir = await mkdtemp(join(tmpdir(), 'bugcapture-e2e-'));
+  await cp(distPath, dir, { recursive: true });
+  const manifestPath = join(dir, 'manifest.json');
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8')) as Record<string, unknown>;
+  // captureVisibleTab specifically requires `<all_urls>` or a granted `activeTab`.
+  manifest.host_permissions = ['<all_urls>'];
+  await writeFile(manifestPath, JSON.stringify(manifest, null, 2));
+  return dir;
+}
 
 let context: BrowserContext;
 let worker: Worker;
+let extensionId: string;
+/** An extension page is needed to talk to the service worker: a worker cannot message itself. */
+let extensionPage: Page;
 
 test.beforeAll(async () => {
+  const extensionPath = await buildTestExtension();
   context = await chromium.launchPersistentContext('', {
     channel: 'chromium',
     args: [
       '--headless=new',
-      `--disable-extensions-except=${distPath}`,
-      `--load-extension=${distPath}`,
+      `--disable-extensions-except=${extensionPath}`,
+      `--load-extension=${extensionPath}`,
       '--no-sandbox',
     ],
   });
 
   worker = context.serviceWorkers()[0] ?? (await context.waitForEvent('serviceworker'));
+  extensionId = new URL(worker.url()).host;
+
+  // Video needs a real tab-capture user gesture, which headless Chrome cannot grant.
+  await worker.evaluate(async (key) => {
+    const stored = await chrome.storage.local.get(key);
+    const settings = (stored[key] as Record<string, unknown>) ?? {};
+    const capture = (settings.capture as Record<string, unknown>) ?? {};
+    settings.capture = { ...capture, video: false, screenshotOnStop: true };
+    await chrome.storage.local.set({ [key]: settings });
+  }, SETTINGS_KEY);
+
+  extensionPage = await context.newPage();
+  await extensionPage.goto(`chrome-extension://${extensionId}/options.html`);
 });
 
 test.afterAll(async () => {
   await context?.close();
 });
 
-test('captures console logs, network logs, replay events and environment into a report', async () => {
-  // Video needs a real tab-capture user gesture, which headless Chrome cannot grant.
-  await worker.evaluate(async () => {
-    const stored = await chrome.storage.local.get('settings');
-    const settings = stored.settings ?? {};
-    settings.capture = { ...(settings.capture ?? {}), video: false, screenshotOnStop: true };
-    await chrome.storage.local.set({ settings });
-  });
+test('the built extension loads without manifest or service-worker errors', async () => {
+  expect(extensionId).toMatch(/^[a-p]{32}$/);
 
+  const manifest = await worker.evaluate(() => chrome.runtime.getManifest());
+  expect(manifest.manifest_version).toBe(3);
+  expect(manifest.name).toBe('BugCapture');
+
+  await expect(extensionPage.locator('.options')).toBeVisible();
+});
+
+test('captures console logs, network logs, replay events and environment into a report', async () => {
   const page = await context.newPage();
   await page.goto(FIXTURE);
   await page.bringToFront();
 
   const tabId = await worker.evaluate(async () => {
-    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    const [tab] = await chrome.tabs.query({ url: 'http://127.0.0.1:5599/*' });
     return tab?.id;
   });
   expect(tabId).toBeDefined();
 
-  const state = await worker.evaluate(
+  const started = await extensionPage.evaluate(
     async (id) => chrome.runtime.sendMessage({ type: 'capture:start', tabId: id }),
     tabId,
   );
-  expect(state).toMatchObject({ status: 'recording' });
+  expect(started).toMatchObject({ ok: true, state: { recording: true } });
 
   // The floating widget lives in a Shadow DOM injected by the content script.
   await expect(page.locator('#bugcapture-widget-host')).toBeAttached();
@@ -58,12 +107,19 @@ test('captures console logs, network logs, replay events and environment into a 
   await page.waitForFunction(() => document.getElementById('log')?.textContent === 'requested');
   await page.fill('#secret', 'topsecret');
 
-  const reportId = await worker.evaluate(async () =>
-    chrome.runtime.sendMessage({ type: 'capture:stop' }),
-  );
-  expect(typeof reportId).toBe('string');
+  // The stop-screenshot uses captureVisibleTab, so the fixture must be the active tab.
+  await worker.evaluate(async (id) => {
+    await chrome.tabs.update(id as number, { active: true });
+  }, tabId);
 
-  const report = await worker.evaluate(async (id) => {
+  const stopped = (await extensionPage.evaluate(async () =>
+    chrome.runtime.sendMessage({ type: 'capture:stop' }),
+  )) as { ok: boolean; reportId?: string };
+  expect(stopped.ok).toBe(true);
+  expect(typeof stopped.reportId).toBe('string');
+  const reportId = stopped.reportId!;
+
+  const captured = (await extensionPage.evaluate(async (id) => {
     const db = await new Promise<IDBDatabase>((resolve, reject) => {
       const request = indexedDB.open('bugcapture');
       request.onsuccess = () => resolve(request.result);
@@ -77,9 +133,7 @@ test('captures console logs, network logs, replay events and environment into a 
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
-  }, reportId);
-
-  const captured = report as {
+  }, reportId)) as {
     console: { level: string; text: string }[];
     network: { url: string; status: number; requestHeaders: Record<string, string> }[];
     replayEvents: unknown[];
