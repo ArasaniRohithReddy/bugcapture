@@ -174,9 +174,9 @@ describe('entry redaction', () => {
       title: 'Login fails for dev@example.com',
       description: `saw ${JWT}`,
       severity: 'high',
-      stepsToReproduce: '',
-      expectedBehavior: '',
-      actualBehavior: '',
+      stepsToReproduce: '1. Send an Authorization header\n2. Watch it fail',
+      expectedBehavior: 'Logged in',
+      actualBehavior: `401 with ${JWT}`,
       url: 'https://app.test/login',
       environment: emptyEnvironment('0.1.0'),
       console: [consoleEntry],
@@ -187,8 +187,12 @@ describe('entry redaction', () => {
     };
 
     const result = redactReport(report);
+    // User-authored fields are the user's own words and are never rewritten.
     expect(result.title).toContain('dev@example.com');
     expect(result.description).toContain(JWT);
+    expect(result.stepsToReproduce).toBe(report.stepsToReproduce);
+    expect(result.expectedBehavior).toBe(report.expectedBehavior);
+    expect(result.actualBehavior).toBe(report.actualBehavior);
     expect(result.console[0]!.text).not.toContain(JWT);
     expect(result.network[0]!.requestHeaders.authorization).toBe(REDACTED);
     expect(JSON.stringify({ console: result.console, network: result.network })).not.toContain(JWT);
