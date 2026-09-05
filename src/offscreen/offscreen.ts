@@ -13,6 +13,7 @@ interface Session {
   recorder: MediaRecorder;
   stream: MediaStream;
   micStream?: MediaStream;
+  audioContext: AudioContext;
   chunks: Blob[];
   mediaId: string;
   startedAt: number;
@@ -63,13 +64,15 @@ async function start(streamId: string, microphone: boolean, mediaId: string): Pr
   };
   recorder.start(1000);
 
-  session = { recorder, stream, chunks, mediaId, startedAt: Date.now(), mimeType };
+  session = { recorder, stream, audioContext, chunks, mediaId, startedAt: Date.now(), mimeType };
   if (micStream) session.micStream = micStream;
 }
 
 function stopTracks(current: Session): void {
   for (const track of current.stream.getTracks()) track.stop();
   current.micStream?.getTracks().forEach((track) => track.stop());
+  // Without this the audio graph stays alive and leaks on every start/stop.
+  void current.audioContext.close().catch(() => undefined);
 }
 
 async function stop(): Promise<RecordingResult> {

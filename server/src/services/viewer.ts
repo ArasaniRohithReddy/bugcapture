@@ -1,5 +1,9 @@
 import { escapeHtml } from '../utils/helpers.js';
 
+/** Static assets served from `/assets`, see `assetsRouter`. */
+export const PLAYER_SCRIPT_PATH = '/assets/rrweb-player.umd.min.js';
+export const PLAYER_STYLE_PATH = '/assets/rrweb-player.css';
+
 function escapeJsonForScript(data: unknown): string {
   // Safely embed JSON in a script tag by escaping </script and <!-- sequences
   return JSON.stringify(data).replace(/<\//g, '<\\/').replace(/<!--/g, '<\\!--');
@@ -20,7 +24,7 @@ export function renderViewer(
     : 'unknown';
 
   const env = (report['environment'] ?? {}) as Record<string, unknown>;
-  const envHtml = env
+  const envHtml = Object.keys(env).length
     ? `<dl class="env">
         <dt>Browser</dt><dd>${escapeHtml(String(env['browser'] ?? ''))} ${escapeHtml(String(env['browserVersion'] ?? ''))}</dd>
         <dt>OS</dt><dd>${escapeHtml(String(env['os'] ?? ''))}</dd>
@@ -70,14 +74,20 @@ export function renderViewer(
   const replaySection = replay.length
     ? `<h2>Session Replay</h2>
        <div id="replay-container"></div>
+       <script src="${PLAYER_SCRIPT_PATH}"></script>
        <script>
          (function() {
            var events = ${escapeJsonForScript(replay)};
-           if (typeof rrwebPlayer !== 'undefined' && events.length) {
-             new rrwebPlayer.Replayer({
-               target: document.getElementById('replay-container'),
-               props: { events: events, showController: true, autoPlay: false }
+           // The UMD bundle exposes a namespace object, not the constructor itself.
+           var Player = (window.rrwebPlayer && window.rrwebPlayer.default) || window.rrwebPlayer;
+           var target = document.getElementById('replay-container');
+           if (typeof Player === 'function' && events.length > 1) {
+             new Player({
+               target: target,
+               props: { events: events, width: Math.min(940, window.innerWidth - 32), autoPlay: false }
              });
+           } else {
+             target.textContent = 'Session replay could not be rendered.';
            }
          })();
        </script>`
@@ -89,6 +99,7 @@ export function renderViewer(
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Bug Report: ${title}</title>
+  ${replay.length ? `<link rel="stylesheet" href="${PLAYER_STYLE_PATH}" />` : ''}
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body { font-family: system-ui, -apple-system, sans-serif; max-width: 960px; margin: 0 auto; padding: 1rem; background: #f8f9fa; color: #212529; }

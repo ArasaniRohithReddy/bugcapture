@@ -1,4 +1,4 @@
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 /** Permissive schema – strict about required fields, passthrough for the rest. */
 export const BugReportSchema = z

@@ -307,13 +307,15 @@ async function quickScreenshot(): Promise<string | undefined> {
 async function setPaused(paused: boolean): Promise<CaptureState> {
   const state = await getState();
   if (!state.recording || state.paused === paused) return state;
-  const next: CaptureState = {
-    ...state,
-    paused,
-    pausedMs: paused
-      ? state.pausedMs
-      : state.pausedMs + (Date.now() - (state.startedAt ?? Date.now())),
-  };
+  const now = Date.now();
+  const next: CaptureState = { ...state, paused };
+  if (paused) {
+    next.pausedAt = now;
+  } else {
+    // Only the duration of this pause is added, not the whole capture so far.
+    next.pausedMs = state.pausedMs + (state.pausedAt ? now - state.pausedAt : 0);
+    delete next.pausedAt;
+  }
   if (state.videoActive) {
     await sendMessage({ type: paused ? 'offscreen:pause' : 'offscreen:resume' });
   }

@@ -45,7 +45,10 @@ function Popup() {
   }, [refresh]);
 
   const recording = Boolean(state?.recording);
-  const elapsed = state?.startedAt ? Date.now() - state.startedAt - state.pausedMs : 0;
+  const pausedSoFar = state?.pausedAt ? Date.now() - state.pausedAt : 0;
+  const elapsed = state?.startedAt
+    ? Date.now() - state.startedAt - state.pausedMs - pausedSoFar
+    : 0;
 
   const run = async (action: () => Promise<unknown>) => {
     setBusy(true);

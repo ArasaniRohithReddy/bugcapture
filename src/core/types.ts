@@ -194,6 +194,8 @@ export interface CaptureState {
   startedAt?: number;
   /** Accumulated paused time in ms. */
   pausedMs: number;
+  /** Epoch ms when the current pause began; unset while recording. */
+  pausedAt?: number;
   tabId?: number;
   videoActive: boolean;
 }

@@ -4,14 +4,17 @@ import { corsMiddleware } from './middleware/cors.js';
 import { healthRouter } from './routes/health.js';
 import { reportsRouter } from './routes/reports.js';
 import { aiRouter } from './routes/ai.js';
+import { assetsRouter } from './routes/assets.js';
 
 export function createApp(configOverrides?: Partial<ReturnType<typeof loadConfig>>) {
   const config = { ...loadConfig(), ...configOverrides };
 
   const app = express();
 
-  // Trust proxy for accurate req.ip behind reverse proxies
-  app.set('trust proxy', true);
+  // Only trust the number of proxy hops that are actually in front of this
+  // server. Trusting every proxy would let a client spoof X-Forwarded-For and
+  // walk straight past the per-IP rate limiter.
+  app.set('trust proxy', config.trustProxyHops);
 
   // CORS
   app.use(corsMiddleware(config));
@@ -21,6 +24,7 @@ export function createApp(configOverrides?: Partial<ReturnType<typeof loadConfig
 
   // Routes
   app.use(healthRouter(config));
+  app.use(assetsRouter());
   app.use(reportsRouter(config));
   app.use(aiRouter(config));
 

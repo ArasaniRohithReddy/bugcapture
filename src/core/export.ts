@@ -58,8 +58,10 @@ export function buildStandaloneViewer(report: BugReport, mediaFiles: string[]): 
     <script>${playerScript}</script>
     <script>
       var events = ${events};
+      // The UMD bundle exposes a namespace object, not the constructor itself.
+      var Player = (window.rrwebPlayer && window.rrwebPlayer.default) || window.rrwebPlayer;
       if (events.length > 1) {
-        new rrwebPlayer({
+        new Player({
           target: document.getElementById('replay'),
           props: { events: events, width: Math.min(1024, window.innerWidth - 48), autoPlay: false },
         });

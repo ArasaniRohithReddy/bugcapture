@@ -13,6 +13,8 @@ export interface Config {
   publicUrl: string;
   authToken: string;
   requireAuthForRead: boolean;
+  /** Number of reverse-proxy hops to trust for `req.ip`. 0 disables proxy trust. */
+  trustProxyHops: number;
   allowedOrigins: string;
   maxUploadBytes: number;
   maxFileBytes: number;
@@ -30,6 +32,7 @@ export function loadConfig(): Config {
     publicUrl: env['PUBLIC_URL'] ?? '',
     authToken: env['AUTH_TOKEN'] ?? '',
     requireAuthForRead: env['REQUIRE_AUTH_FOR_READ'] === 'true',
+    trustProxyHops: Math.max(0, Number(env['TRUST_PROXY_HOPS'] ?? 0) || 0),
     allowedOrigins: env['ALLOWED_ORIGINS'] ?? '*',
     maxUploadBytes: Number(env['MAX_UPLOAD_BYTES'] ?? 200 * 1024 * 1024),
     maxFileBytes: Number(env['MAX_FILE_BYTES'] ?? 50 * 1024 * 1024),

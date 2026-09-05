@@ -154,7 +154,7 @@ export function reportsRouter(config: Config): Router {
         .setHeader('Content-Type', 'text/html; charset=utf-8')
         .setHeader(
           'Content-Security-Policy',
-          "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'none'; frame-src 'none';",
+          "default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'none'; frame-src 'none';",
         )
         .send(html);
     } catch (err) {
