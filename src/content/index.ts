@@ -6,7 +6,13 @@
  * only present on tabs the user actively captures.
  */
 import { record } from 'rrweb';
-import { PAGE_MESSAGE_SOURCE, type CapturePayload, type ContentCommand, type Message, type PageMessage } from '../core/messages';
+import {
+  PAGE_MESSAGE_SOURCE,
+  type CapturePayload,
+  type ContentCommand,
+  type Message,
+  type PageMessage,
+} from '../core/messages';
 import { collectEnvironment } from '../core/env';
 import type { CaptureSettings, ConsoleLogEntry, NetworkEntry } from '../core/types';
 import { createWidget, type Widget } from './widget';

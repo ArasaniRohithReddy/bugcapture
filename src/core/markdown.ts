@@ -13,7 +13,9 @@ export function formatConsoleLine(entry: ConsoleLogEntry): string {
 }
 
 export function formatNetworkLine(entry: NetworkEntry): string {
-  const status = entry.error ? `ERR (${entry.error})` : `${entry.status} ${entry.statusText}`.trim();
+  const status = entry.error
+    ? `ERR (${entry.error})`
+    : `${entry.status} ${entry.statusText}`.trim();
   const duration = entry.duration === undefined ? '' : ` – ${entry.duration}ms`;
   return `${entry.method} ${entry.url} → ${status}${duration}`;
 }
@@ -53,7 +55,9 @@ export function reportToMarkdown(report: BugReport, options: MarkdownOptions = {
   lines.push('| Field | Value |', '| --- | --- |');
   lines.push(`| Browser | ${env.browser} ${env.browserVersion} |`);
   lines.push(`| OS | ${env.os} |`);
-  lines.push(`| Viewport | ${env.viewport.width}×${env.viewport.height} @${env.devicePixelRatio}x |`);
+  lines.push(
+    `| Viewport | ${env.viewport.width}×${env.viewport.height} @${env.devicePixelRatio}x |`,
+  );
   lines.push(`| Screen | ${env.screen.width}×${env.screen.height} |`);
   lines.push(`| Language | ${env.language} |`);
   lines.push(`| Timezone | ${env.timezone} |`);
@@ -73,7 +77,9 @@ export function reportToMarkdown(report: BugReport, options: MarkdownOptions = {
   if (failures.length) {
     lines.push(`## Failed network requests (${failures.length})`, '');
     for (const group of groupFailures(failures)) {
-      lines.push(`- \`${group.method} ${group.endpoint}\` → **${group.status || 'failed'}** ×${group.count}`);
+      lines.push(
+        `- \`${group.method} ${group.endpoint}\` → **${group.status || 'failed'}** ×${group.count}`,
+      );
     }
     lines.push('');
   }
@@ -110,6 +116,10 @@ export function reportToMarkdown(report: BugReport, options: MarkdownOptions = {
     lines.push(`## AI ${output.kind} (${output.provider}/${output.model})`, '', output.content, '');
   }
 
-  lines.push('---', '', '_Generated with [BugCapture](https://github.com/ArasaniRohithReddy/bugcapture)._');
+  lines.push(
+    '---',
+    '',
+    '_Generated with [BugCapture](https://github.com/ArasaniRohithReddy/bugcapture)._',
+  );
   return lines.join('\n');
 }

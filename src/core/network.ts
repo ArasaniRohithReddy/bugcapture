@@ -117,7 +117,9 @@ export function normalizeNetworkEvent(event: RawNetworkEvent): NetworkEntry {
   const response = truncateBody(event.responseBody, maxBodyBytes);
   const status = typeof event.status === 'number' ? event.status : 0;
   const duration =
-    typeof event.endedAt === 'number' ? Math.max(0, Math.round(event.endedAt - event.startedAt)) : undefined;
+    typeof event.endedAt === 'number'
+      ? Math.max(0, Math.round(event.endedAt - event.startedAt))
+      : undefined;
 
   const entry: NetworkEntry = {
     id: event.id,

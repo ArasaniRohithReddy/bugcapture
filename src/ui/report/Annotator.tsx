@@ -42,8 +42,14 @@ function drawShape(context: CanvasRenderingContext2D, shape: Shape): void {
     const head = 14;
     context.beginPath();
     context.moveTo(end.x, end.y);
-    context.lineTo(end.x - head * Math.cos(angle - Math.PI / 6), end.y - head * Math.sin(angle - Math.PI / 6));
-    context.lineTo(end.x - head * Math.cos(angle + Math.PI / 6), end.y - head * Math.sin(angle + Math.PI / 6));
+    context.lineTo(
+      end.x - head * Math.cos(angle - Math.PI / 6),
+      end.y - head * Math.sin(angle - Math.PI / 6),
+    );
+    context.lineTo(
+      end.x - head * Math.cos(angle + Math.PI / 6),
+      end.y - head * Math.sin(angle + Math.PI / 6),
+    );
     context.closePath();
     context.fill();
     return;
@@ -127,9 +133,7 @@ export function Annotator({
     }
     event.currentTarget.setPointerCapture(event.pointerId);
     setDraft(
-      tool === 'pen'
-        ? { tool: 'pen', color, points: [at] }
-        : { tool, color, start: at, end: at },
+      tool === 'pen' ? { tool: 'pen', color, points: [at] } : { tool, color, start: at, end: at },
     );
   };
 
@@ -165,7 +169,13 @@ export function Annotator({
             className={tool === item ? 'primary' : ''}
             onClick={() => setTool(item)}
           >
-            {item === 'rect' ? '▭ Box' : item === 'arrow' ? '➜ Arrow' : item === 'pen' ? '✎ Pen' : 'T Text'}
+            {item === 'rect'
+              ? '▭ Box'
+              : item === 'arrow'
+                ? '➜ Arrow'
+                : item === 'pen'
+                  ? '✎ Pen'
+                  : 'T Text'}
           </button>
         ))}
         {COLORS.map((item) => (
@@ -175,7 +185,10 @@ export function Annotator({
             aria-label={`Colour ${item}`}
             aria-pressed={color === item}
             className="swatch"
-            style={{ background: item, outline: color === item ? '2px solid var(--accent)' : 'none' }}
+            style={{
+              background: item,
+              outline: color === item ? '2px solid var(--accent)' : 'none',
+            }}
             onClick={() => setColor(item)}
           />
         ))}

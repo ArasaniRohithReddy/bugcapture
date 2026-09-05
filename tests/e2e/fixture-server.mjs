@@ -39,7 +39,9 @@ const server = createServer(async (request, response) => {
 
   try {
     const file = await readFile(join(root, relative));
-    response.writeHead(200, { 'content-type': TYPES[extname(relative)] ?? 'application/octet-stream' });
+    response.writeHead(200, {
+      'content-type': TYPES[extname(relative)] ?? 'application/octet-stream',
+    });
     response.end(file);
   } catch {
     response.writeHead(404).end('Not found');

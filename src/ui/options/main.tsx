@@ -112,7 +112,9 @@ function AiTab({
         label="Enable AI features"
         checked={ai.enabled}
         hint="AI is optional. Capture, replay and export work with AI switched off."
-        onChange={(enabled) => update((current) => ({ ...current, ai: { ...current.ai, enabled } }))}
+        onChange={(enabled) =>
+          update((current) => ({ ...current, ai: { ...current.ai, enabled } }))
+        }
       />
 
       <Field label="Provider mode">
@@ -141,7 +143,10 @@ function AiTab({
       ) : null}
 
       {ai.mode === 'ollama' ? (
-        <Field label="Ollama endpoint" hint="Default installation listens on http://localhost:11434">
+        <Field
+          label="Ollama endpoint"
+          hint="Default installation listens on http://localhost:11434"
+        >
           <input
             type="url"
             value={ai.ollamaEndpoint}
@@ -259,15 +264,31 @@ function CaptureTab({
 
   return (
     <section>
-      <Toggle label="Record video by default" checked={capture.video} onChange={(video) => set({ video })} />
+      <Toggle
+        label="Record video by default"
+        checked={capture.video}
+        onChange={(video) => set({ video })}
+      />
       <Toggle
         label="Include microphone audio"
         checked={capture.microphone}
         onChange={(microphone) => set({ microphone })}
       />
-      <Toggle label="Capture console logs" checked={capture.console} onChange={(value) => set({ console: value })} />
-      <Toggle label="Capture network logs" checked={capture.network} onChange={(network) => set({ network })} />
-      <Toggle label="Record session replay" checked={capture.replay} onChange={(replay) => set({ replay })} />
+      <Toggle
+        label="Capture console logs"
+        checked={capture.console}
+        onChange={(value) => set({ console: value })}
+      />
+      <Toggle
+        label="Capture network logs"
+        checked={capture.network}
+        onChange={(network) => set({ network })}
+      />
+      <Toggle
+        label="Record session replay"
+        checked={capture.replay}
+        onChange={(replay) => set({ replay })}
+      />
       <Toggle
         label="Take a screenshot when the capture stops"
         checked={capture.screenshotOnStop}
@@ -282,7 +303,9 @@ function CaptureTab({
           min={1}
           max={4096}
           value={Math.round(capture.maxBodyBytes / 1024)}
-          onChange={(event) => set({ maxBodyBytes: Math.max(1, Number(event.target.value)) * 1024 })}
+          onChange={(event) =>
+            set({ maxBodyBytes: Math.max(1, Number(event.target.value)) * 1024 })
+          }
         />
       </Field>
       <Field label="Theme">
@@ -387,7 +410,10 @@ function PrivacyTab({
           }
         />
       </Field>
-      <Field label="Masked selectors" hint="Comma separated. Matching text is replaced with asterisks.">
+      <Field
+        label="Masked selectors"
+        hint="Comma separated. Matching text is replaced with asterisks."
+      >
         <input
           type="text"
           value={capture.maskSelectors.join(', ')}
@@ -424,7 +450,10 @@ function IntegrationsTab({
   const setGithub = (patch: Partial<Settings['integrations']['github']>) =>
     update((current) => ({
       ...current,
-      integrations: { ...current.integrations, github: { ...current.integrations.github, ...patch } },
+      integrations: {
+        ...current.integrations,
+        github: { ...current.integrations.github, ...patch },
+      },
     }));
 
   return (

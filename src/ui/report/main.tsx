@@ -6,7 +6,13 @@ import { Field, Tabs, useSettings, useTheme } from '../shared/components';
 import { AiPanel } from './AiPanel';
 import { Annotator } from './Annotator';
 import { ConsolePanel, EnvironmentPanel, MediaPanel, NetworkPanel, ReplayPanel } from './panels';
-import { buildZipBundle, copyToClipboard, downloadBlob, reportFileName, reportToJson } from '../../core/export';
+import {
+  buildZipBundle,
+  copyToClipboard,
+  downloadBlob,
+  reportFileName,
+  reportToJson,
+} from '../../core/export';
 import { reportToMarkdown } from '../../core/markdown';
 import { redactReport } from '../../core/redact';
 import { getBlob, getReport, putBlob, saveReport } from '../../core/storage';
@@ -106,17 +112,25 @@ function ReportEditor({ id }: { id: string }) {
       <header className="spread">
         <h1>Bug report</h1>
         <div className="row">
-          <button type="button" onClick={() => void run('Copying Markdown', async () => {
-            const ok = await copyToClipboard(markdown);
-            return ok ? 'Markdown copied to clipboard.' : '❌ Clipboard permission denied.';
-          })}>
+          <button
+            type="button"
+            onClick={() =>
+              void run('Copying Markdown', async () => {
+                const ok = await copyToClipboard(markdown);
+                return ok ? 'Markdown copied to clipboard.' : '❌ Clipboard permission denied.';
+              })
+            }
+          >
             Copy Markdown
           </button>
           <button
             type="button"
             onClick={() =>
               void run('Exporting Markdown', async () => {
-                downloadBlob(new Blob([markdown], { type: 'text/markdown' }), reportFileName(report, 'md'));
+                downloadBlob(
+                  new Blob([markdown], { type: 'text/markdown' }),
+                  reportFileName(report, 'md'),
+                );
               })
             }
           >
@@ -232,7 +246,11 @@ function ReportEditor({ id }: { id: string }) {
               disabled={busy || !settings.integrations.github.token}
               onClick={() =>
                 void run('Creating GitHub issue', async () => {
-                  const issue = await createGithubIssue(redacted, settings.integrations.github, markdown);
+                  const issue = await createGithubIssue(
+                    redacted,
+                    settings.integrations.github,
+                    markdown,
+                  );
                   patch({ issueUrl: issue.url });
                   return `Created issue #${issue.number}: ${issue.url}`;
                 })
@@ -252,9 +270,13 @@ function ReportEditor({ id }: { id: string }) {
             ) : null}
           </div>
           <p className="hint">
-            Uploads and issues always use the redacted copy shown in these tabs. Configure
-            endpoints and tokens in{' '}
-            <button type="button" className="ghost" onClick={() => chrome.runtime.openOptionsPage()}>
+            Uploads and issues always use the redacted copy shown in these tabs. Configure endpoints
+            and tokens in{' '}
+            <button
+              type="button"
+              className="ghost"
+              onClick={() => chrome.runtime.openOptionsPage()}
+            >
               Options
             </button>
             .
@@ -304,7 +326,9 @@ function ReportEditor({ id }: { id: string }) {
               const blob = await getBlob(item.id);
               if (blob) setAnnotating({ item, blob });
             }}
-            onDelete={(item) => patch({ media: report.media.filter((entry) => entry.id !== item.id) })}
+            onDelete={(item) =>
+              patch({ media: report.media.filter((entry) => entry.id !== item.id) })
+            }
           />
         ) : null}
         {tab === 'environment' ? <EnvironmentPanel report={redacted} /> : null}

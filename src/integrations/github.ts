@@ -10,7 +10,10 @@ export interface CreatedIssue {
 export const GITHUB_ORIGIN = 'https://api.github.com/*';
 
 export function parseRepository(repository: string): { owner: string; repo: string } {
-  const match = repository.trim().replace(/^https:\/\/github\.com\//, '').match(/^([^/\s]+)\/([^/\s]+?)(?:\.git)?$/);
+  const match = repository
+    .trim()
+    .replace(/^https:\/\/github\.com\//, '')
+    .match(/^([^/\s]+)\/([^/\s]+?)(?:\.git)?$/);
   if (!match) {
     throw new Error(`Invalid repository "${repository}". Use the owner/repo format.`);
   }

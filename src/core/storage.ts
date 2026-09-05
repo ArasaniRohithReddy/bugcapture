@@ -96,7 +96,9 @@ export async function assignBlobs(mediaIds: readonly string[], reportId: string)
   await tx.done;
 }
 
-export async function getReportMedia(report: BugReport): Promise<Array<MediaItem & { blob: Blob }>> {
+export async function getReportMedia(
+  report: BugReport,
+): Promise<Array<MediaItem & { blob: Blob }>> {
   const items: Array<MediaItem & { blob: Blob }> = [];
   for (const media of report.media) {
     const blob = await getBlob(media.id);

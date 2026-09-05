@@ -5,12 +5,7 @@
  * through this module first. It is deliberately dependency-free and pure so it
  * can be unit tested and reused by the backend viewer if needed.
  */
-import type {
-  BugReport,
-  ConsoleLogEntry,
-  NetworkEntry,
-  RedactionSettings,
-} from './types';
+import type { BugReport, ConsoleLogEntry, NetworkEntry, RedactionSettings } from './types';
 
 export const REDACTED = '[REDACTED]';
 
@@ -35,7 +30,10 @@ interface Rule {
 /** Secret-shaped strings. Ordered most specific first. */
 const SECRET_RULES: Rule[] = [
   // JSON Web Tokens.
-  { pattern: /\beyJ[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{4,}\b/g, replacement: REDACTED },
+  {
+    pattern: /\beyJ[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{4,}\b/g,
+    replacement: REDACTED,
+  },
   // `Authorization: ****** style values appearing inside free text.
   {
     pattern: /\b(bearer|basic|token)\s+[A-Za-z0-9._~+/=-]{8,}/gi,

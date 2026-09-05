@@ -122,7 +122,13 @@ describe('normalizeNetworkEvent', () => {
 
   it('treats 4xx and 5xx as failures but 3xx as ok', () => {
     const build = (status: number): NetworkEntry =>
-      normalizeNetworkEvent({ id: `n${status}`, initiator: 'fetch', url: 'https://a.test/', startedAt: 0, status });
+      normalizeNetworkEvent({
+        id: `n${status}`,
+        initiator: 'fetch',
+        url: 'https://a.test/',
+        startedAt: 0,
+        status,
+      });
     expect(isFailure(build(302))).toBe(false);
     expect(isFailure(build(404))).toBe(true);
     expect(isFailure(build(500))).toBe(true);
@@ -131,7 +137,9 @@ describe('normalizeNetworkEvent', () => {
 
 describe('grouping', () => {
   it('collapses ids and uuids in URLs', () => {
-    expect(templatizeUrl('https://api.test/users/42/posts')).toBe('https://api.test/users/:id/posts');
+    expect(templatizeUrl('https://api.test/users/42/posts')).toBe(
+      'https://api.test/users/:id/posts',
+    );
     expect(templatizeUrl('https://api.test/a/2f1c8b2e-6d4a-4a54-9f42-7a1b6f0d1c33')).toBe(
       'https://api.test/a/:uuid',
     );

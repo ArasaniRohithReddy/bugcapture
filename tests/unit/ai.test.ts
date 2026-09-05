@@ -47,7 +47,12 @@ function makeReport(overrides: Partial<BugReport> = {}): BugReport {
     expectedBehavior: '',
     actualBehavior: '',
     url: 'https://shop.test/checkout',
-    environment: { ...emptyEnvironment('1.0.0'), browser: 'Chrome', browserVersion: '120', os: 'macOS' },
+    environment: {
+      ...emptyEnvironment('1.0.0'),
+      browser: 'Chrome',
+      browserVersion: '120',
+      os: 'macOS',
+    },
     console: [],
     network: [],
     replayEvents: [],
@@ -85,14 +90,22 @@ describe('buildAiPayload', () => {
 
   it('prioritizes errors and failing requests, and caps the payload', () => {
     const report = makeReport({
-      console: [
-        log('log', 'noise a', 1),
-        log('warn', 'careful', 2),
-        log('error', 'boom', 3),
-      ],
+      console: [log('log', 'noise a', 1), log('warn', 'careful', 2), log('error', 'boom', 3)],
       network: [
-        normalizeNetworkEvent({ id: 'ok', initiator: 'fetch', url: 'https://a.test/ok', startedAt: 0, status: 200 }),
-        normalizeNetworkEvent({ id: 'bad', initiator: 'fetch', url: 'https://a.test/bad', startedAt: 0, status: 500 }),
+        normalizeNetworkEvent({
+          id: 'ok',
+          initiator: 'fetch',
+          url: 'https://a.test/ok',
+          startedAt: 0,
+          status: 200,
+        }),
+        normalizeNetworkEvent({
+          id: 'bad',
+          initiator: 'fetch',
+          url: 'https://a.test/bad',
+          startedAt: 0,
+          status: 500,
+        }),
       ],
     });
 
@@ -105,9 +118,14 @@ describe('buildAiPayload', () => {
   });
 
   it('clamps long text', () => {
-    const payload = buildAiPayload(makeReport({ console: [log('error', 'x'.repeat(100))] }), '', undefined, {
-      maxTextLength: 20,
-    });
+    const payload = buildAiPayload(
+      makeReport({ console: [log('error', 'x'.repeat(100))] }),
+      '',
+      undefined,
+      {
+        maxTextLength: 20,
+      },
+    );
     expect(payload.console[0]!.text).toHaveLength(21);
     expect(payload.console[0]!.text.endsWith('…')).toBe(true);
   });
@@ -121,7 +139,9 @@ describe('buildAiPayload', () => {
 
 describe('prompts', () => {
   it('asks for the required report sections', () => {
-    const prompt = buildReportPrompt(buildAiPayload(makeReport({ console: [log('error', 'boom')] })));
+    const prompt = buildReportPrompt(
+      buildAiPayload(makeReport({ console: [log('error', 'boom')] })),
+    );
     for (const section of [
       '## Title',
       '## Summary',
@@ -142,7 +162,10 @@ describe('prompts', () => {
   });
 
   it('includes the stack in the error explanation prompt', () => {
-    const prompt = buildErrorExplanationPrompt(log('error', 'boom', 0, 'at handler (app.js:1)'), 'clicked pay');
+    const prompt = buildErrorExplanationPrompt(
+      log('error', 'boom', 0, 'at handler (app.js:1)'),
+      'clicked pay',
+    );
     expect(prompt.user).toContain('at handler (app.js:1)');
     expect(prompt.user).toContain('clicked pay');
   });
@@ -158,7 +181,9 @@ describe('prompts', () => {
         status: 503,
       }),
     );
-    expect(buildNetworkSummaryPrompt(entries).user).toContain('https://api.test/orders/:id → 503 (2×)');
+    expect(buildNetworkSummaryPrompt(entries).user).toContain(
+      'https://api.test/orders/:id → 503 (2×)',
+    );
     expect(buildNetworkSummaryPrompt([]).user).toContain('No failing requests');
   });
 });
@@ -221,7 +246,9 @@ describe('findSimilarReports', () => {
     const matches = findSimilarReports(target, [target, duplicate, unrelated]);
     expect(matches.map((match) => match.report.id)).toContain('b');
     expect(matches.map((match) => match.report.id)).not.toContain('a');
-    expect(matches[0]!.reasons.some((reason) => reason.startsWith('Same console error'))).toBe(true);
+    expect(matches[0]!.reasons.some((reason) => reason.startsWith('Same console error'))).toBe(
+      true,
+    );
     expect(matches[0]!.score).toBeGreaterThan(0.25);
   });
 

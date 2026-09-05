@@ -10,17 +10,21 @@ import {
   sanitizeFilename,
   isAllowedMediaType,
   generateId,
-  escapeHtml,
 } from '../utils/helpers.js';
 import { renderViewer } from '../services/viewer.js';
+import { createRateLimitMiddleware } from '../middleware/rate-limit.js';
+
+const RESERVED_NAMES = new Set(['report.json', 'replay.json']);
 
 export function reportsRouter(config: Config): Router {
   const router = Router();
+  const rateLimiter = createRateLimitMiddleware(60_000, 60);
 
   const upload = multer({
     storage: multer.memoryStorage(),
     limits: {
       fileSize: config.maxFileBytes,
+      fieldSize: config.maxFileBytes,
       files: 50,
     },
   });
@@ -32,10 +36,18 @@ export function reportsRouter(config: Config): Router {
   router.post(
     '/api/reports',
     writeAuth,
+    rateLimiter,
     upload.any(),
     async (req, res): Promise<void> => {
       try {
         const files = (req.files ?? []) as Express.Multer.File[];
+
+        // Check total upload size
+        const totalSize = files.reduce((sum, f) => sum + f.size, 0);
+        if (totalSize > config.maxUploadBytes) {
+          res.status(413).json({ error: 'Total upload size exceeds the limit.' });
+          return;
+        }
 
         // Extract report JSON
         const reportFile = files.find((f) => f.fieldname === 'report');
@@ -61,6 +73,24 @@ export function reportsRouter(config: Config): Router {
           return;
         }
 
+        // Validate all media files before writing anything
+        const mediaFiles = files.filter((f) => f.fieldname === 'media');
+        for (const media of mediaFiles) {
+          if (!isAllowedMediaType(media.mimetype)) {
+            res.status(400).json({
+              error: `Disallowed media type: ${media.mimetype}. Allowed: video/webm, image/png, image/jpeg`,
+            });
+            return;
+          }
+          const safeName = sanitizeFilename(media.originalname);
+          if (RESERVED_NAMES.has(safeName)) {
+            res.status(400).json({
+              error: `Media filename "${safeName}" conflicts with a reserved name.`,
+            });
+            return;
+          }
+        }
+
         const report = parsed.data;
         const id = generateId();
         const dir = join(config.dataDir, id);
@@ -75,15 +105,8 @@ export function reportsRouter(config: Config): Router {
           await writeFile(join(dir, 'replay.json'), replayFile.buffer);
         }
 
-        // Write media files
-        const mediaFiles = files.filter((f) => f.fieldname === 'media');
+        // Write media files (already validated above)
         for (const media of mediaFiles) {
-          if (!isAllowedMediaType(media.mimetype)) {
-            res.status(400).json({
-              error: `Disallowed media type: ${media.mimetype}. Allowed: video/webm, image/png, image/jpeg`,
-            });
-            return;
-          }
           const safeName = sanitizeFilename(media.originalname);
           await writeFile(join(dir, safeName), media.buffer);
         }
@@ -102,7 +125,7 @@ export function reportsRouter(config: Config): Router {
   );
 
   // GET /api/reports/:id — HTML viewer
-  router.get('/api/reports/:id', readAuth, async (req, res): Promise<void> => {
+  router.get('/api/reports/:id', readAuth, rateLimiter, async (req, res): Promise<void> => {
     try {
       const id = sanitizeFilename(String(req.params.id));
       const dir = join(config.dataDir, id);
@@ -151,6 +174,7 @@ export function reportsRouter(config: Config): Router {
   router.get(
     '/api/reports/:id/report.json',
     readAuth,
+    rateLimiter,
     async (req, res): Promise<void> => {
       try {
         const id = sanitizeFilename(String(req.params.id));
@@ -171,6 +195,7 @@ export function reportsRouter(config: Config): Router {
   router.get(
     '/api/reports/:id/media/:file',
     readAuth,
+    rateLimiter,
     async (req, res): Promise<void> => {
       try {
         const id = sanitizeFilename(String(req.params.id));

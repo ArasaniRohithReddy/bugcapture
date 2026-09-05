@@ -1,6 +1,11 @@
 /** Shared React hooks and small components used by all extension pages. */
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { DEFAULT_SETTINGS, getSettings, onSettingsChanged, saveSettings } from '../../core/settings';
+import {
+  DEFAULT_SETTINGS,
+  getSettings,
+  onSettingsChanged,
+  saveSettings,
+} from '../../core/settings';
 import type { Settings } from '../../core/types';
 
 /** Load settings and keep them in sync with other extension pages. */

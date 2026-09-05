@@ -20,7 +20,11 @@ export function ConsolePanel({ entries }: { entries: ConsoleLogEntry[] }) {
   return (
     <div>
       <div className="row" style={{ marginBottom: 10 }}>
-        <select value={level} onChange={(event) => setLevel(event.target.value as typeof level)} style={{ width: 160 }}>
+        <select
+          value={level}
+          onChange={(event) => setLevel(event.target.value as typeof level)}
+          style={{ width: 160 }}
+        >
           <option value="all">All levels</option>
           <option value="warn">Warnings & errors</option>
           <option value="error">Errors only</option>
@@ -43,7 +47,9 @@ export function ConsolePanel({ entries }: { entries: ConsoleLogEntry[] }) {
           {filtered.map((entry) => (
             <div className="log-row" key={entry.id}>
               <span className="muted">{formatTime(entry.timestamp)}</span>
-              <span className={`badge ${entry.level === 'error' ? 'error' : entry.level === 'warn' ? 'warn' : ''}`}>
+              <span
+                className={`badge ${entry.level === 'error' ? 'error' : entry.level === 'warn' ? 'warn' : ''}`}
+              >
                 {entry.level}
               </span>
               <span>

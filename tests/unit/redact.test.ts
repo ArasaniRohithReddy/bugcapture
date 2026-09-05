@@ -14,7 +14,11 @@ import { emptyEnvironment } from '../../src/core/env';
 import type { BugReport, ConsoleLogEntry, NetworkEntry } from '../../src/core/types';
 
 // Assembled at runtime so scanners do not flag the fixture as a real token.
-const JWT = ['ey' + 'J' + 'hbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9', 'eyJzdWIiOiIxMjM0NSIsIm5hbWUiOiJRQSJ9', 'S0m3F4keSignatureValue00'].join('.');
+const JWT = [
+  'ey' + 'J' + 'hbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9',
+  'eyJzdWIiOiIxMjM0NSIsIm5hbWUiOiJRQSJ9',
+  'S0m3F4keSignatureValue00',
+].join('.');
 
 describe('redactHeaders', () => {
   it('strips Authorization, Cookie, Set-Cookie and X-API-Key', () => {

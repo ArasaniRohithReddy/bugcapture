@@ -25,7 +25,12 @@ const STATE_KEY = 'bugcapture:capture-state';
 const PENDING_MEDIA_KEY = 'bugcapture:pending-media';
 const OFFSCREEN_URL = 'offscreen.html';
 
-const IDLE_STATE: CaptureState = { recording: false, paused: false, pausedMs: 0, videoActive: false };
+const IDLE_STATE: CaptureState = {
+  recording: false,
+  paused: false,
+  pausedMs: 0,
+  videoActive: false,
+};
 
 async function getState(): Promise<CaptureState> {
   const stored = await chrome.storage.session.get(STATE_KEY);
@@ -42,7 +47,9 @@ async function setState(state: CaptureState): Promise<void> {
 
 async function updateBadge(state: CaptureState): Promise<void> {
   try {
-    await chrome.action.setBadgeText({ text: state.recording ? (state.paused ? '❚❚' : 'REC') : '' });
+    await chrome.action.setBadgeText({
+      text: state.recording ? (state.paused ? '❚❚' : 'REC') : '',
+    });
     await chrome.action.setBadgeBackgroundColor({ text: '#e5484d' } as never);
   } catch {
     // Badge updates are best effort.
@@ -286,7 +293,9 @@ async function setPaused(paused: boolean): Promise<CaptureState> {
   const next: CaptureState = {
     ...state,
     paused,
-    pausedMs: paused ? state.pausedMs : state.pausedMs + (Date.now() - (state.startedAt ?? Date.now())),
+    pausedMs: paused
+      ? state.pausedMs
+      : state.pausedMs + (Date.now() - (state.startedAt ?? Date.now())),
   };
   if (state.videoActive) {
     await sendMessage({ type: paused ? 'offscreen:pause' : 'offscreen:resume' });

@@ -70,7 +70,10 @@ test('captures console logs, network logs, replay events and environment into a 
       request.onerror = () => reject(request.error);
     });
     return new Promise((resolve, reject) => {
-      const request = db.transaction('reports').objectStore('reports').get(id as string);
+      const request = db
+        .transaction('reports')
+        .objectStore('reports')
+        .get(id as string);
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });

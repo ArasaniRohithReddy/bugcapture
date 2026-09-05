@@ -20,7 +20,9 @@ const DEFAULTS: Required<SerializeOptions> = {
 };
 
 function truncate(value: string, max: number): string {
-  return value.length > max ? `${value.slice(0, max)}… [truncated ${value.length - max} chars]` : value;
+  return value.length > max
+    ? `${value.slice(0, max)}… [truncated ${value.length - max} chars]`
+    : value;
 }
 
 function describeNode(node: any): string {
@@ -151,7 +153,10 @@ export function captureStack(skipFrames = 2): string | undefined {
   try {
     const stack = new Error('bugcapture-stack').stack;
     if (!stack) return undefined;
-    return stack.split('\n').slice(skipFrames + 1).join('\n');
+    return stack
+      .split('\n')
+      .slice(skipFrames + 1)
+      .join('\n');
   } catch {
     return undefined;
   }

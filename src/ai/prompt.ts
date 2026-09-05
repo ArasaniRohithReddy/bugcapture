@@ -7,7 +7,12 @@
  */
 import type { BugReport, ConsoleLogEntry, NetworkEntry, RedactionSettings } from '../core/types';
 import { groupFailures, isFailure } from '../core/network';
-import { DEFAULT_REDACTION, redactConsoleEntry, redactNetworkEntry, redactText } from '../core/redact';
+import {
+  DEFAULT_REDACTION,
+  redactConsoleEntry,
+  redactNetworkEntry,
+  redactText,
+} from '../core/redact';
 
 export interface PromptLimits {
   maxConsole?: number;
@@ -156,7 +161,10 @@ export function buildReportPrompt(payload: AiPayload): AiPrompt {
       `Console entries (${payload.console.length} of ${payload.consoleTotal}):`,
       payload.console.length
         ? payload.console
-            .map((entry) => `- [${entry.level}] ${entry.text}${entry.stack ? `\n  ${entry.stack}` : ''}`)
+            .map(
+              (entry) =>
+                `- [${entry.level}] ${entry.text}${entry.stack ? `\n  ${entry.stack}` : ''}`,
+            )
             .join('\n')
         : '- none captured',
       '',

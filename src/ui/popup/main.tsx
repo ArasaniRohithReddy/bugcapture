@@ -118,7 +118,9 @@ function Popup() {
               <button
                 type="button"
                 onClick={() =>
-                  run(() => sendMessage({ type: state?.paused ? 'capture:resume' : 'capture:pause' }))
+                  run(() =>
+                    sendMessage({ type: state?.paused ? 'capture:resume' : 'capture:pause' }),
+                  )
                 }
                 disabled={busy}
               >

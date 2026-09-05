@@ -49,8 +49,7 @@ export function AiPanel({
 
   const promptFor = (kind: Action): AiPrompt => {
     if (kind === 'error') {
-      const topError =
-        report.console.find((entry) => entry.level === 'error') ?? report.console[0];
+      const topError = report.console.find((entry) => entry.level === 'error') ?? report.console[0];
       if (!topError) throw new AiError('There are no console entries to explain.');
       return buildErrorExplanationPrompt(topError, notes);
     }
@@ -78,7 +77,9 @@ export function AiPanel({
         prompt: preview.prompt,
         ai: { ...settings.ai, consentGivenAt: settings.ai.consentGivenAt ?? Date.now() },
         backend: settings.backend,
-        onToken: settings.ai.streaming ? (chunk) => setOutput((current) => current + chunk) : undefined,
+        onToken: settings.ai.streaming
+          ? (chunk) => setOutput((current) => current + chunk)
+          : undefined,
       });
       const text = result.text || output;
       setOutput(text);
@@ -87,7 +88,12 @@ export function AiPanel({
           generatedAt: Date.now(),
           provider: result.provider,
           model: result.model,
-          kind: action === 'report' ? 'report' : action === 'error' ? 'error-explanation' : 'network-summary',
+          kind:
+            action === 'report'
+              ? 'report'
+              : action === 'error'
+                ? 'error-explanation'
+                : 'network-summary',
           content: text,
         });
       }
@@ -121,7 +127,11 @@ export function AiPanel({
       {!settings.ai.enabled ? (
         <p className="muted">
           AI is disabled. Everything else — capture, replay, export, GitHub — keeps working. Enable
-          it in <button type="button" className="ghost" onClick={() => chrome.runtime.openOptionsPage()}>Options</button>.
+          it in{' '}
+          <button type="button" className="ghost" onClick={() => chrome.runtime.openOptionsPage()}>
+            Options
+          </button>
+          .
         </p>
       ) : (
         <>
@@ -165,7 +175,8 @@ export function AiPanel({
             <ul>
               {duplicates.map((match) => (
                 <li key={match.id}>
-                  <a href={`report.html?id=${match.id}`}>{match.title}</a> — <span className="muted">{match.why}</span>
+                  <a href={`report.html?id=${match.id}`}>{match.title}</a> —{' '}
+                  <span className="muted">{match.why}</span>
                 </li>
               ))}
             </ul>
@@ -205,12 +216,14 @@ export function AiPanel({
           {!settings.ai.consentGivenAt ? (
             <div className="notice">
               <strong>First AI use.</strong> By continuing you agree that the redacted payload below
-              leaves your browser and is sent to the provider you configured
-              (<code>{settings.ai.mode}</code>). Media files, cookies and the session replay are
+              leaves your browser and is sent to the provider you configured (
+              <code>{settings.ai.mode}</code>). Media files, cookies and the session replay are
               never sent. Consent can be revoked in Options at any time.
             </div>
           ) : null}
-          <h3>Payload ({payload.console.length} console, {payload.network.length} network entries)</h3>
+          <h3>
+            Payload ({payload.console.length} console, {payload.network.length} network entries)
+          </h3>
           <pre style={{ maxHeight: 240 }}>{preview.payloadText}</pre>
           <h3>Prompt</h3>
           <pre style={{ maxHeight: 200 }}>{preview.prompt.user}</pre>

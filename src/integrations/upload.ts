@@ -57,5 +57,8 @@ export async function uploadReport(
     throw new Error(`Upload failed (${response.status}): ${detail.slice(0, 200)}`);
   }
   const result = (await response.json()) as { id: string; url: string };
-  return { id: result.id, url: result.url.startsWith('http') ? result.url : `${endpoint}${result.url}` };
+  return {
+    id: result.id,
+    url: result.url.startsWith('http') ? result.url : `${endpoint}${result.url}`,
+  };
 }

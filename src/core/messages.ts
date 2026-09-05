@@ -1,5 +1,12 @@
 /** Typed message protocol used across popup, content, background and offscreen. */
-import type { CaptureSettings, CaptureState, ConsoleLogEntry, EnvironmentInfo, MediaItem, NetworkEntry } from './types';
+import type {
+  CaptureSettings,
+  CaptureState,
+  ConsoleLogEntry,
+  EnvironmentInfo,
+  MediaItem,
+  NetworkEntry,
+} from './types';
 
 export interface CapturePayload {
   console: ConsoleLogEntry[];
@@ -66,5 +73,11 @@ export type PageMessage =
   | { source: typeof PAGE_MESSAGE_SOURCE; kind: 'ready' };
 
 export type ContentCommand =
-  | { source: 'bugcapture:content'; kind: 'configure'; maxBodyBytes: number; console: boolean; network: boolean }
+  | {
+      source: 'bugcapture:content';
+      kind: 'configure';
+      maxBodyBytes: number;
+      console: boolean;
+      network: boolean;
+    }
   | { source: 'bugcapture:content'; kind: 'stop' };
