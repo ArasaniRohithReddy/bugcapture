@@ -15,11 +15,22 @@ async function reports(): Promise<Report[]> {
 async function main(): Promise<void> {
   const input = createInterface({ input: process.stdin });
   for await (const line of input) {
-    const request = JSON.parse(line) as {
+    if (!line.trim()) continue;
+    type Request = {
       id?: string | number;
       method?: string;
       params?: { name?: string; arguments?: { id?: string } };
     };
+    let request: Request;
+    try {
+      request = JSON.parse(line) as Request;
+    } catch {
+      // A malformed line must not take the server down.
+      process.stdout.write(
+        `${JSON.stringify({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } })}\n`,
+      );
+      continue;
+    }
     let result: unknown;
     if (request.method === 'initialize')
       result = {

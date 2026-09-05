@@ -170,9 +170,10 @@ async function stopVideo(): Promise<MediaItem | undefined> {
 
 async function captureScreenshot(windowId?: number): Promise<MediaItem | undefined> {
   try {
-    const dataUrl = await chrome.tabs.captureVisibleTab(windowId as number, {
-      format: 'png',
-    });
+    const dataUrl =
+      windowId === undefined
+        ? await chrome.tabs.captureVisibleTab({ format: 'png' })
+        : await chrome.tabs.captureVisibleTab(windowId, { format: 'png' });
     const blob = dataUrlToBlob(dataUrl);
     const media: MediaItem = {
       id: uid('shot'),
@@ -504,7 +505,7 @@ async function setRewindConsent(domain: string, enabled: boolean): Promise<boole
   return enabled;
 }
 
-chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message: Message, sender, sendResponse) => {
   switch (message.type) {
     case 'capture:start':
       startCapture(message.tabId)
@@ -531,13 +532,13 @@ chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) =
         .catch((error: Error) => sendResponse({ ok: false, error: error.message }));
       return true;
     case 'rewind:events':
-      ingestRewind(_sender.tab, message.events)
+      ingestRewind(sender.tab, message.events)
         .then((stored) => sendResponse({ ok: stored }))
         .catch(() => sendResponse({ ok: false }));
       return true;
     case 'rewind:discard':
       void (async () => {
-        if (_sender.tab?.id !== undefined) await clearRewind(_sender.tab.id);
+        if (sender.tab?.id !== undefined) await clearRewind(sender.tab.id);
         sendResponse({ ok: true });
       })();
       return true;
